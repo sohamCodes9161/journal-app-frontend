@@ -1,17 +1,30 @@
 import AppLayout from "@/layouts/AppLayout";
 
+import {
+  Button,
+  Card,
+  PageHeader,
+} from "@/components/ui";
+
 function HomePage() {
   return (
     <AppLayout>
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-md">
-        <h1 className="text-4xl font-bold">
-          Journal App
-        </h1>
+      <Card className="p-8">
+        <PageHeader
+          title="Journal App"
+          description="Your calm digital space for reflection, thoughts, productivity, and growth."
+        />
 
-        <p className="mt-4 text-slate-400">
-          Your calm digital space.
-        </p>
-      </div>
+        <div className="flex gap-4">
+          <Button>
+            Start Journaling
+          </Button>
+
+          <Button variant="secondary">
+            Explore
+          </Button>
+        </div>
+      </Card>
     </AppLayout>
   );
 }
