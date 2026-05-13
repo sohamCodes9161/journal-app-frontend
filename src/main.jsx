@@ -1,18 +1,16 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import { RouterProvider } from "react-router-dom";
 
-import App from "./App";
 import QueryProvider from "@/providers/queryProvider";
+import router from "@/routes/router";
 
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <QueryProvider>
-        <App />
-      </QueryProvider>
-    </BrowserRouter>
+    <QueryProvider>
+      <RouterProvider router={router} />
+    </QueryProvider>
   </React.StrictMode>
 );
