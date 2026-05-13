@@ -1,0 +1,37 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+body {
+  margin: 0;
+
+  background:
+    radial-gradient(
+      circle at top,
+      #172554,
+      var(--background)
+    );
+
+  color: var(--text-primary);
+
+  font-family:
+    Inter,
+    system-ui,
+    sans-serif;
+
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}

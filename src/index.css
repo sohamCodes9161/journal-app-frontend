@@ -1,77 +1,8 @@
 @import "tailwindcss";
 
-:root {
-  font-family:
-    Inter,
-    system-ui,
-    sans-serif;
-
-  color-scheme: dark;
-
-  --background: #0f172a;
-  --surface: #172033;
-  --surface-light: #1e293b;
-
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-
-  --border: rgba(255, 255, 255, 0.08);
-
-  --accent: #8b5cf6;
-  --accent-soft: #a78bfa;
-
-  --success: #34d399;
-  --danger: #f87171;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-  width: 100%;
-  min-height: 100vh;
-}
-
-body {
-  margin: 0;
-
-  background:
-    radial-gradient(
-      circle at top,
-      #172554,
-      var(--background)
-    );
-
-  color: var(--text-primary);
-
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Smooth interactions */
-button,
-input,
-textarea {
-  font: inherit;
-}
-
-/* Better scrollbar */
-::-webkit-scrollbar {
-  width: 10px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
+@import "./styles/variables.css";
+@import "./styles/globals.css";
+@import "./styles/typography.css";
+@import "./styles/utilities.css";
+@import "./styles/scrollbar.css";
+@import "./styles/animations.css";
