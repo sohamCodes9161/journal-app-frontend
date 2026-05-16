@@ -5,7 +5,7 @@ import DashboardPage from "@/pages/DashboardPage";
 
 import LoginPage from "@/features/auth/pages/LoginPage";
 import RegisterPage from "@/features/auth/pages/RegisterPage";
-
+import PublicOnlyRoutes from "./PublicOnlyRoutes";
 import ProtectedRoutes from "./ProtectedRoutes";
 
 const router = createBrowserRouter([
@@ -16,12 +16,20 @@ const router = createBrowserRouter([
 
   {
     path: "/auth/login",
-    element: <LoginPage />,
+    element: (
+      <PublicOnlyRoutes>
+        <LoginPage />
+      </PublicOnlyRoutes>
+    ),
   },
 
   {
     path: "/auth/register",
-    element: <RegisterPage />,
+    element: (
+      <PublicOnlyRoutes>
+        <RegisterPage />
+      </PublicOnlyRoutes>
+    ),
   },
 
   {

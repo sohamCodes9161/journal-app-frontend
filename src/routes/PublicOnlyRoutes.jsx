@@ -4,18 +4,18 @@ import FullscreenLoader from "@/components/feedback/FullscreenLoader";
 
 import useAuth from "@/features/auth/hooks/useAuth";
 
-function ProtectedRoutes({ children }) {
+function PublicOnlyRoutes({ children }) {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return <FullscreenLoader />;
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/auth/login" replace />;
+  if (isAuthenticated) {
+    return <Navigate to="/app" replace />;
   }
 
   return children;
 }
 
-export default ProtectedRoutes;
+export default PublicOnlyRoutes;
