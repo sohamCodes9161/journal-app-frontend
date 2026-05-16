@@ -1,8 +1,10 @@
+import DashboardLayout from "./layouts/DashboardLayout";
+
 function App() {
   return (
-    <div>
-      Journal App
-    </div>
+    <DashboardLayout>
+      <h1>Journal App</h1>
+    </DashboardLayout>
   );
 }
 
