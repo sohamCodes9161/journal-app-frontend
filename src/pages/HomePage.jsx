@@ -1,10 +1,6 @@
 import AppLayout from "@/layouts/AppLayout";
 
-import {
-  Button,
-  Card,
-  PageHeader,
-} from "@/components/ui";
+import { Button, Card, PageHeader } from "@/components/ui";
 
 function HomePage() {
   return (
@@ -16,13 +12,9 @@ function HomePage() {
         />
 
         <div className="flex gap-4">
-          <Button>
-            Start Journaling
-          </Button>
+          <Button>Start Journaling</Button>
 
-          <Button variant="secondary">
-            Explore
-          </Button>
+          <Button variant="secondary">Explore</Button>
         </div>
       </Card>
     </AppLayout>

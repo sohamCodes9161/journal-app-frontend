@@ -1,6 +1,4 @@
-import {
-  navigationLinks,
-} from "./navigationLinks";
+import { navigationLinks } from "./navigationLinks";
 
 import NavLinkItem from "./NavLinkItem";
 
@@ -20,21 +18,14 @@ function Sidebar() {
       "
     >
       <div className="mb-8 px-2">
-        <h2 className="text-xl font-bold">
-          Journal App
-        </h2>
+        <h2 className="text-xl font-bold">Journal App</h2>
 
-        <p className="mt-1 text-sm text-slate-400">
-          Your calm digital space
-        </p>
+        <p className="mt-1 text-sm text-slate-400">Your calm digital space</p>
       </div>
 
       <nav className="flex flex-col gap-2">
         {navigationLinks.map((link) => (
-          <NavLinkItem
-            key={link.path}
-            to={link.path}
-          >
+          <NavLinkItem key={link.path} to={link.path}>
             {link.label}
           </NavLinkItem>
         ))}

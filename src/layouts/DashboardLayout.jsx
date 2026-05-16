@@ -10,9 +10,7 @@ function DashboardLayout({ children }) {
         <div className="flex flex-1 flex-col">
           <Navbar />
 
-          <div className="flex-1 p-4 pb-24 lg:p-8">
-            {children}
-          </div>
+          <div className="flex-1 p-4 pb-24 lg:p-8">{children}</div>
         </div>
       </div>
 

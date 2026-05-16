@@ -12,19 +12,11 @@ body,
 body {
   margin: 0;
 
-  background:
-    radial-gradient(
-      circle at top,
-      #172554,
-      var(--background)
-    );
+  background: radial-gradient(circle at top, #172554, var(--background));
 
   color: var(--text-primary);
 
-  font-family:
-    Inter,
-    system-ui,
-    sans-serif;
+  font-family: Inter, system-ui, sans-serif;
 
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;

@@ -9,14 +9,12 @@ function Button({
   ...props
 }) {
   const variants = {
-    primary:
-      "bg-violet-500 hover:bg-violet-400 text-white",
+    primary: "bg-violet-500 hover:bg-violet-400 text-white",
 
     secondary:
       "bg-white/10 hover:bg-white/15 text-white border border-white/10",
 
-    ghost:
-      "hover:bg-white/10 text-slate-300",
+    ghost: "hover:bg-white/10 text-slate-300",
   };
 
   const sizes = {

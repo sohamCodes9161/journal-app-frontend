@@ -1,9 +1,6 @@
 import DashboardLayout from "@/layouts/DashboardLayout";
 
-import {
-  Card,
-  PageHeader,
-} from "@/components/ui";
+import { Card, PageHeader } from "@/components/ui";
 
 function DashboardPage() {
   return (
@@ -14,17 +11,11 @@ function DashboardPage() {
       />
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        <Card className="p-6">
-          Mood Overview
-        </Card>
+        <Card className="p-6">Mood Overview</Card>
 
-        <Card className="p-6">
-          Journal Activity
-        </Card>
+        <Card className="p-6">Journal Activity</Card>
 
-        <Card className="p-6">
-          Weekly Reflection
-        </Card>
+        <Card className="p-6">Weekly Reflection</Card>
       </div>
     </DashboardLayout>
   );

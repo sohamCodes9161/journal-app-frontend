@@ -1,6 +1,4 @@
-import {
-  navigationLinks,
-} from "./navigationLinks";
+import { navigationLinks } from "./navigationLinks";
 
 import NavLinkItem from "./NavLinkItem";
 
@@ -22,10 +20,7 @@ function MobileNav() {
     >
       <nav className="flex items-center justify-around p-3">
         {navigationLinks.map((link) => (
-          <NavLinkItem
-            key={link.path}
-            to={link.path}
-          >
+          <NavLinkItem key={link.path} to={link.path}>
             {link.label}
           </NavLinkItem>
         ))}
