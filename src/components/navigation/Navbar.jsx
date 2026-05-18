@@ -1,4 +1,10 @@
+import { Button } from "@/components/ui";
+
+import useLogout from "@/features/auth/hooks/useLogout";
+
 function Navbar() {
+  const logoutMutation = useLogout();
+
   return (
     <header
       className="
@@ -16,9 +22,14 @@ function Navbar() {
           <h1 className="text-sm font-medium text-slate-300">Welcome back</h1>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-violet-400/20" />
-        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          isLoading={logoutMutation.isPending}
+          onClick={() => logoutMutation.mutate()}
+        >
+          Logout
+        </Button>
       </div>
     </header>
   );

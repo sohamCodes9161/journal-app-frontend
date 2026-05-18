@@ -1,10 +1,10 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 
 import FullscreenLoader from "@/components/feedback/FullscreenLoader";
 
 import useAuth from "@/features/auth/hooks/useAuth";
 
-function ProtectedRoutes({ children }) {
+function ProtectedRoutes() {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -15,7 +15,7 @@ function ProtectedRoutes({ children }) {
     return <Navigate to="/auth/login" replace />;
   }
 
-  return children;
+  return <Outlet />;
 }
 
 export default ProtectedRoutes;

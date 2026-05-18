@@ -1,12 +1,19 @@
 import { createBrowserRouter } from "react-router-dom";
 
 import HomePage from "@/pages/HomePage";
+
 import DashboardPage from "@/pages/DashboardPage";
+import JournalPage from "@/pages/JournalPage";
+import TodosPage from "@/pages/TodosPage";
+import AnalyticsPage from "@/pages/AnalyticsPage";
 
 import LoginPage from "@/features/auth/pages/LoginPage";
 import RegisterPage from "@/features/auth/pages/RegisterPage";
-import PublicOnlyRoutes from "./PublicOnlyRoutes";
+
+import DashboardLayout from "@/layouts/DashboardLayout";
+
 import ProtectedRoutes from "./ProtectedRoutes";
+import PublicOnlyRoutes from "./PublicOnlyRoutes";
 
 const router = createBrowserRouter([
   {
@@ -33,12 +40,22 @@ const router = createBrowserRouter([
   },
 
   {
-    path: "/app",
-    element: (
-      <ProtectedRoutes>
-        <DashboardPage />
-      </ProtectedRoutes>
-    ),
+    element: <ProtectedRoutes />,
+
+    children: [
+      {
+        path: "/app",
+
+        element: <DashboardLayout />,
+
+        children: [
+          {
+            index: true,
+            element: <DashboardPage />,
+          },
+        ],
+      },
+    ],
   },
 ]);
 

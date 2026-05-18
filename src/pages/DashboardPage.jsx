@@ -1,13 +1,11 @@
-import DashboardLayout from "@/layouts/DashboardLayout";
-
 import { Card, PageHeader } from "@/components/ui";
 
 function DashboardPage() {
   return (
-    <DashboardLayout>
+    <>
       <PageHeader
         title="Dashboard"
-        description="A gentle overview of your thoughts, habits, and progress."
+        description="A gentle overview of your thoughts, habits, and growth."
       />
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -17,7 +15,7 @@ function DashboardPage() {
 
         <Card className="p-6">Weekly Reflection</Card>
       </div>
-    </DashboardLayout>
+    </>
   );
 }
 

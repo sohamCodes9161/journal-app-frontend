@@ -1,13 +1,14 @@
 import { useState } from "react";
+
 import { useNavigate } from "react-router-dom";
 
 import { useMutation } from "@tanstack/react-query";
 
 import { Button, Input, PageHeader } from "@/components/ui";
 
-import useAuth from "../hooks/useAuth";
-
 import { loginUser } from "../api/authApi";
+
+import useAuth from "../hooks/useAuth";
 
 import AuthFormContainer from "../components/AuthFormContainer";
 import AuthRedirectLink from "../components/AuthRedirectLink";
@@ -25,10 +26,24 @@ function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: loginUser,
 
-    onSuccess: (data) => {
-      setUser(data.user);
+    onSuccess: (response) => {
+      console.log("LOGIN RESPONSE:", response);
+
+      const user = response.user || response.data?.user;
+
+      if (!user) {
+        console.error("User object missing in response");
+
+        return;
+      }
+
+      setUser(user);
 
       navigate("/app");
+    },
+
+    onError: (error) => {
+      console.error(error);
     },
   });
 
@@ -76,6 +91,10 @@ function LoginPage() {
         >
           Sign in
         </Button>
+
+        {loginMutation.isError && (
+          <p className="text-sm text-red-400">Login failed</p>
+        )}
       </form>
 
       <div className="mt-6">
@@ -85,12 +104,6 @@ function LoginPage() {
           to="/auth/register"
         />
       </div>
-      {loginMutation.isError && (
-        <p className="text-sm text-red-400">
-          {loginMutation.error?.response?.data?.message ||
-            "Something went wrong"}
-        </p>
-      )}
     </AuthFormContainer>
   );
 }

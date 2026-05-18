@@ -12,9 +12,9 @@ function AuthProvider({ children }) {
   useEffect(() => {
     async function restoreSession() {
       try {
-        const data = await getCurrentUser();
+        const response = await getCurrentUser();
 
-        setUser(data.user);
+        setUser(response.data);
       } catch (error) {
         setUser(null);
       } finally {
