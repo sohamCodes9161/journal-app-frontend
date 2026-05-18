@@ -1,10 +1,16 @@
-import { useState } from "react";
-
 import { useNavigate } from "react-router-dom";
+
+import { useForm } from "react-hook-form";
+
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useMutation } from "@tanstack/react-query";
 
 import { Button, Input, PageHeader } from "@/components/ui";
+
+import FormField from "@/components/forms/FormField";
+
+import { loginSchema } from "../validation/loginSchema";
 
 import { loginUser } from "../api/authApi";
 
@@ -18,26 +24,24 @@ function LoginPage() {
 
   const { setUser } = useAuth();
 
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+
+    defaultValues: {
+      email: "",
+      password: "",
+    },
   });
 
   const loginMutation = useMutation({
     mutationFn: loginUser,
 
-    onSuccess: (response) => {
-      console.log("LOGIN RESPONSE:", response);
-
-      const user = response.user || response.data?.user;
-
-      if (!user) {
-        console.error("User object missing in response");
-
-        return;
-      }
-
-      setUser(user);
+    onSuccess: (data) => {
+      setUser(data.user);
 
       navigate("/app");
     },
@@ -47,16 +51,7 @@ function LoginPage() {
     },
   });
 
-  function handleChange(event) {
-    setFormData((prev) => ({
-      ...prev,
-      [event.target.name]: event.target.value,
-    }));
-  }
-
-  function handleSubmit(event) {
-    event.preventDefault();
-
+  function onSubmit(formData) {
     loginMutation.mutate(formData);
   }
 
@@ -67,22 +62,28 @@ function LoginPage() {
         description="Continue your reflections and thoughts."
       />
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-        <Input
-          type="email"
-          name="email"
-          placeholder="Email address"
-          value={formData.email}
-          onChange={handleChange}
-        />
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
+        <FormField label="Email" htmlFor="email" error={errors.email?.message}>
+          <Input
+            id="email"
+            type="email"
+            placeholder="Enter your email"
+            {...register("email")}
+          />
+        </FormField>
 
-        <Input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={formData.password}
-          onChange={handleChange}
-        />
+        <FormField
+          label="Password"
+          htmlFor="password"
+          error={errors.password?.message}
+        >
+          <Input
+            id="password"
+            type="password"
+            placeholder="Enter your password"
+            {...register("password")}
+          />
+        </FormField>
 
         <Button
           type="submit"
@@ -93,7 +94,7 @@ function LoginPage() {
         </Button>
 
         {loginMutation.isError && (
-          <p className="text-sm text-red-400">Login failed</p>
+          <p className="text-sm text-red-400">Invalid email or password</p>
         )}
       </form>
 
