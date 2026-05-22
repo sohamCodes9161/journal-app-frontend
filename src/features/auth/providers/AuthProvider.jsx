@@ -8,13 +8,12 @@ function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
 
   const [isLoading, setIsLoading] = useState(true);
-
   useEffect(() => {
     async function restoreSession() {
       try {
         const response = await getCurrentUser();
 
-        setUser(response.data);
+        setUser(response);
       } catch (error) {
         setUser(null);
       } finally {
