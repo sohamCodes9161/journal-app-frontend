@@ -6,7 +6,7 @@ export const navigationLinks = [
 
   {
     label: "Journal",
-    path: "/app/journal",
+    path: "/app/journals",
   },
 
   {

@@ -6,7 +6,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import JournalPage from "@/pages/JournalPage";
 import TodosPage from "@/pages/TodosPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
-
+import JournalFeedPage from "@/features/journal/pages/JournalFeedPage";
 import LoginPage from "@/features/auth/pages/LoginPage";
 import RegisterPage from "@/features/auth/pages/RegisterPage";
 
@@ -52,6 +52,21 @@ const router = createBrowserRouter([
           {
             index: true,
             element: <DashboardPage />,
+          },
+
+          {
+            path: "journals",
+            element: <JournalFeedPage />,
+          },
+
+          {
+            path: "todos",
+            element: <TodosPage />,
+          },
+
+          {
+            path: "analytics",
+            element: <AnalyticsPage />,
           },
         ],
       },
