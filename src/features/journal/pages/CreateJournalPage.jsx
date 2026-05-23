@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { useNavigate } from "react-router-dom";
 
 import { useForm } from "react-hook-form";
@@ -10,10 +12,16 @@ import FormField from "@/components/forms/FormField";
 
 import useCreateJournal from "../hooks/useCreateJournal";
 
+import JournalEditor from "../components/editor/JournalEditor";
+
+import emptyEditorContent from "../utils/emptyEditorContent";
+
 import { createJournalSchema } from "../validation/createJournalSchema";
 
 function CreateJournalPage() {
   const navigate = useNavigate();
+
+  const [content, setContent] = useState(emptyEditorContent);
 
   const createJournalMutation = useCreateJournal();
 
@@ -28,7 +36,6 @@ function CreateJournalPage() {
       title: "",
       mood: "",
       category: "",
-      content: "",
     },
   });
 
@@ -36,23 +43,7 @@ function CreateJournalPage() {
     const payload = {
       ...values,
 
-      content: {
-        type: "doc",
-
-        content: [
-          {
-            type: "paragraph",
-
-            content: [
-              {
-                type: "text",
-
-                text: values.content,
-              },
-            ],
-          },
-        ],
-      },
+      content,
 
       tags: [],
 
@@ -65,7 +56,7 @@ function CreateJournalPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-4xl">
       <PageHeader
         title="New Journal"
         description="Capture your thoughts gently and honestly."
@@ -98,31 +89,13 @@ function CreateJournalPage() {
           </FormField>
         </div>
 
-        <FormField
-          label="Content"
-          htmlFor="content"
-          error={errors.content?.message}
-        >
-          <textarea
-            id="content"
-            rows={12}
-            className="
-              w-full
-              rounded-3xl
-              border
-              border-white/10
-              bg-white/5
-              p-5
-              text-slate-200
-              outline-none
-              transition
-              placeholder:text-slate-500
-              focus:border-violet-400
-            "
-            placeholder="Write freely..."
-            {...register("content")}
-          />
-        </FormField>
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-slate-300">
+            Journal Entry
+          </label>
+
+          <JournalEditor content={content} onChange={setContent} />
+        </div>
 
         <Button
           type="submit"
