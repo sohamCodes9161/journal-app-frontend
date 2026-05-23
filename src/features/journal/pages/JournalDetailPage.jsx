@@ -1,15 +1,55 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useParams } from "react-router-dom";
+import toast from "react-hot-toast";
+import { Button, Input, PageHeader } from "@/components/ui";
 
-import PageHeader from "@/components/ui/PageHeader";
+import JournalEditor from "../components/editor/JournalEditor";
 
 import useJournal from "../hooks/useJournal";
 
-import extractTextFromContent from "../utils/extractTextFromContent";
+import useUpdateJournal from "../hooks/useUpdateJournal";
 
 function JournalDetailPage() {
+  const navigate = useNavigate();
   const { journalId } = useParams();
 
   const { data: journal, isLoading, isError } = useJournal(journalId);
+
+  const updateJournalMutation = useUpdateJournal();
+
+  const [title, setTitle] = useState("");
+
+  const [content, setContent] = useState(null);
+
+  useEffect(() => {
+    if (!journal) return;
+
+    setTitle(journal.title);
+
+    setContent(journal.content);
+  }, [journal]);
+
+  async function handleSave() {
+    try {
+      await updateJournalMutation.mutateAsync({
+        journalId,
+
+        data: {
+          title,
+          content,
+        },
+      });
+
+      toast.success("Journal saved successfully ✨");
+
+      setTimeout(() => {
+        navigate("/app/journals");
+      }, 1200);
+    } catch (error) {
+      toast.error("Failed to save journal");
+    }
+  }
 
   if (isLoading) {
     return <p className="text-slate-400">Loading journal...</p>;
@@ -20,10 +60,16 @@ function JournalDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className="mx-auto max-w-4xl space-y-8">
       <PageHeader
-        title={journal.title}
-        description={`Feeling ${journal.mood}`}
+        title="Your Reflection"
+        description="Revisit thoughts, emotions, and moments."
+      />
+
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="text-2xl font-semibold"
       />
 
       <div
@@ -61,22 +107,11 @@ function JournalDetailPage() {
         ))}
       </div>
 
-      <article
-        className="
-          rounded-3xl
-          border
-          border-white/10
-          bg-white/5
-          p-8
-          leading-8
-          text-slate-200
-          backdrop-blur-sm
-        "
-      >
-        <p className="whitespace-pre-wrap">
-          {extractTextFromContent(journal.content)}
-        </p>
-      </article>
+      {content && <JournalEditor content={content} onChange={setContent} />}
+
+      <Button onClick={handleSave} isLoading={updateJournalMutation.isPending}>
+        Save Changes
+      </Button>
     </div>
   );
 }
