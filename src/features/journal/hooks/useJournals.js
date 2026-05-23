@@ -1,15 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { getJournalById } from "../api/journalApi";
+import { getJournals } from "../api/journalApi";
 
-function useJournal(journalId) {
+function useJournals() {
   return useQuery({
-    queryKey: ["journal", journalId],
+    queryKey: ["journals"],
 
-    queryFn: () => getJournalById(journalId),
-
-    enabled: !!journalId,
+    queryFn: getJournals,
   });
 }
 
-export default useJournal;
+export default useJournals;

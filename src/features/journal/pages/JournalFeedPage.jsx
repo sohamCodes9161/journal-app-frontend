@@ -21,10 +21,9 @@ function JournalFeedPage() {
         title="Your Journals"
         description="Moments, reflections, and thoughts captured over time."
       />
-
       <div className="grid gap-5">
         {data?.journals?.map((journal) => (
-          <JournalCard key={journal.id} journal={journal} />
+          <JournalCard key={journal._id} journal={journal} />
         ))}
       </div>
     </div>

@@ -9,7 +9,7 @@ import AnalyticsPage from "@/pages/AnalyticsPage";
 import JournalFeedPage from "@/features/journal/pages/JournalFeedPage";
 import LoginPage from "@/features/auth/pages/LoginPage";
 import RegisterPage from "@/features/auth/pages/RegisterPage";
-
+import JournalDetailPage from "@/features/journal/pages/JournalDetailPage";
 import DashboardLayout from "@/layouts/DashboardLayout";
 
 import ProtectedRoutes from "./ProtectedRoutes";
@@ -67,6 +67,10 @@ const router = createBrowserRouter([
           {
             path: "analytics",
             element: <AnalyticsPage />,
+          },
+          {
+            path: "journals/:journalId",
+            element: <JournalDetailPage />,
           },
         ],
       },

@@ -23,3 +23,9 @@ export async function getCurrentUser() {
 
   return response.data.data;
 }
+
+export async function refreshAccessToken() {
+  const response = await API.post("/auth/refresh-token");
+
+  return response.data.data;
+}
