@@ -3,6 +3,8 @@ import PageHeader from "@/components/ui/PageHeader";
 import JournalCard from "../components/JournalCard";
 
 import useJournals from "../hooks/useJournals";
+import { Button } from "@/components/ui";
+import { Link } from "react-router-dom";
 
 function JournalFeedPage() {
   const { data, isLoading, isError } = useJournals();
@@ -21,6 +23,11 @@ function JournalFeedPage() {
         title="Your Journals"
         description="Moments, reflections, and thoughts captured over time."
       />
+      <div className="flex justify-end">
+        <Link to="/app/journals/new">
+          <Button>New Journal</Button>
+        </Link>
+      </div>
       <div className="grid gap-5">
         {data?.journals?.map((journal) => (
           <JournalCard key={journal._id} journal={journal} />
