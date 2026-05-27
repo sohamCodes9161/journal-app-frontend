@@ -21,21 +21,26 @@ function processQueue(error = null) {
   failedQueue = [];
 }
 
-console.log("API INTERCEPTOR LOADED");
-
 API.interceptors.response.use(
   (response) => response,
 
   async (error) => {
-    console.log("INTERCEPTOR CAUGHT ERROR");
-
     const originalRequest = error.config;
 
+    // stop if no response
+    if (!error.response) {
+      return Promise.reject(error);
+    }
+
     // access token expired
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      error.response.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url.includes("/auth/refresh-token")
+    ) {
       originalRequest._retry = true;
 
-      // prevent multiple refresh calls
+      // queue requests while refreshing
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -45,8 +50,6 @@ API.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        console.log("TRYING REFRESH TOKEN");
-
         await axios.post(
           `${import.meta.env.VITE_API_BASE_URL}/auth/refresh-token`,
           {},
@@ -55,17 +58,21 @@ API.interceptors.response.use(
           }
         );
 
-        console.log("REFRESH SUCCESS");
-
         processQueue();
 
         return API(originalRequest);
       } catch (refreshError) {
-        console.log("REFRESH FAILED");
-
         processQueue(refreshError);
 
-        window.location.href = "/auth/login";
+        // clear auth safely
+        localStorage.clear();
+        sessionStorage.clear();
+
+        // IMPORTANT:
+        // don't hard reload infinitely
+        if (window.location.pathname !== "/auth/login") {
+          window.location.replace("/auth/login");
+        }
 
         return Promise.reject(refreshError);
       } finally {
