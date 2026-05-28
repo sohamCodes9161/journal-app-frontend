@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle } from "react";
 
 import { EditorContent, useEditor } from "@tiptap/react";
 
@@ -63,7 +63,6 @@ const JournalEditor = forwardRef(({ initialContent, editable = true }, ref) => {
     editable,
 
     autofocus: false,
-
     editorProps: {
       attributes: {
         class:
@@ -72,24 +71,57 @@ const JournalEditor = forwardRef(({ initialContent, editable = true }, ref) => {
     },
   });
 
-  // expose editor instance to parent
-  if (ref) {
-    ref.current = editor;
-  }
+  // expose editor safely
+  useImperativeHandle(ref, () => editor, [editor]);
+
+  // react properly to editable mode changes
+  useEffect(() => {
+    if (!editor) return;
+
+    editor.setEditable(editable);
+  }, [editor, editable]);
+
+  // update content only when journal changes
+  useEffect(() => {
+    if (!editor || !initialContent) return;
+
+    editor.commands.setContent(initialContent);
+  }, [editor, initialContent]);
 
   if (!editor) return null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {editable && <EditorToolbar editor={editor} />}
 
-      <EditorContent editor={editor} />
+      <div
+        className="
+            rounded-[28px]
+            border
+            border-white/10
+            bg-gradient-to-b
+            from-white/[0.04]
+            to-white/[0.02]
+            p-2
+            backdrop-blur-xl
+          "
+      >
+        <EditorContent editor={editor} />
+      </div>
 
-      <div className="text-right text-xs text-slate-500">
-        {editor.storage.characterCount.characters()} characters
+      <div className="flex items-center justify-between px-2">
+        <p className="text-xs text-slate-500">
+          {editable ? "Editing mode enabled" : "Reading mode enabled"}
+        </p>
+
+        <p className="text-xs text-slate-500">
+          {editor.storage.characterCount.characters()} characters
+        </p>
       </div>
     </div>
   );
 });
+
+JournalEditor.displayName = "JournalEditor";
 
 export default JournalEditor;
