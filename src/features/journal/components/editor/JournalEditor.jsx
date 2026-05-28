@@ -18,90 +18,100 @@ import Image from "@tiptap/extension-image";
 
 import EditorToolbar from "./EditorToolbar";
 
-const JournalEditor = forwardRef(({ initialContent, editable = true }, ref) => {
-  const editor = useEditor({
-    immediatelyRender: false,
+const JournalEditor = forwardRef(
+  ({ initialContent, editable = true, onChange }, ref) => {
+    const editor = useEditor({
+      immediatelyRender: false,
 
-    extensions: [
-      StarterKit.configure({
-        history: true,
+      extensions: [
+        StarterKit.configure({
+          history: true,
 
-        bulletList: {
-          keepMarks: true,
-          keepAttributes: true,
-        },
+          bulletList: {
+            keepMarks: true,
+            keepAttributes: true,
+          },
 
-        orderedList: {
-          keepMarks: true,
-          keepAttributes: true,
-        },
+          orderedList: {
+            keepMarks: true,
+            keepAttributes: true,
+          },
 
-        heading: {
-          levels: [1, 2, 3],
-        },
-      }),
+          heading: {
+            levels: [1, 2, 3],
+          },
+        }),
 
-      Placeholder.configure({
-        placeholder: "Write freely. No pressure. Just thoughts...",
-      }),
+        Placeholder.configure({
+          placeholder: "Write freely. No pressure. Just thoughts...",
+        }),
 
-      Underline,
+        Underline,
 
-      Highlight,
+        Highlight,
 
-      CharacterCount,
+        CharacterCount,
 
-      TextAlign.configure({
-        types: ["heading", "paragraph"],
-      }),
+        TextAlign.configure({
+          types: ["heading", "paragraph"],
+        }),
 
-      Image,
-    ],
+        Image,
+      ],
 
-    content: initialContent,
+      content: initialContent,
 
-    editable,
+      editable,
 
-    autofocus: false,
-    editorProps: {
-      attributes: {
-        class:
-          "min-h-[400px] rounded-3xl border border-white/10 bg-white/5 px-6 py-5 text-slate-200 outline-none transition-all duration-200 focus:border-violet-400 prose prose-invert prose-p:text-slate-200 prose-headings:text-white prose-strong:text-white prose-li:text-slate-200 prose-code:text-violet-300 prose-blockquote:border-violet-500 max-w-none overflow-y-auto",
+      autofocus: false,
+
+      // 🔴 FIXED: Emits changes back up to the parent component state
+      onUpdate: ({ editor }) => {
+        if (onChange) {
+          onChange(editor.getJSON());
+        }
       },
-    },
-  });
 
-  // expose editor safely
-  useImperativeHandle(ref, () => editor, [editor]);
+      editorProps: {
+        attributes: {
+          class:
+            "min-h-[400px] rounded-3xl border border-white/10 bg-white/5 px-6 py-5 text-slate-200 outline-none transition-all duration-200 focus:border-violet-400 prose prose-invert prose-p:text-slate-200 prose-headings:text-white prose-strong:text-white prose-li:text-slate-200 prose-code:text-violet-300 prose-blockquote:border-violet-500 max-w-none overflow-y-auto",
+        },
+      },
+    });
 
-  // react properly to editable mode changes
-  useEffect(() => {
-    if (!editor) return;
+    // expose editor safely
+    useImperativeHandle(ref, () => editor, [editor]);
 
-    editor.setEditable(editable);
-  }, [editor, editable]);
+    // react properly to editable mode changes
+    useEffect(() => {
+      if (!editor) return;
 
-  // update content only when journal changes
-  useEffect(() => {
-    if (!editor || !initialContent) return;
+      editor.setEditable(editable);
+    }, [editor, editable]);
 
-    const currentContent = editor.getJSON();
+    // update content only when journal changes
+    useEffect(() => {
+      if (!editor || !initialContent) return;
 
-    const isSameContent =
-      JSON.stringify(currentContent) === JSON.stringify(initialContent);
+      const currentContent = editor.getJSON();
 
-    if (isSameContent) return;
+      const isSameContent =
+        JSON.stringify(currentContent) === JSON.stringify(initialContent);
 
-    editor.commands.setContent(initialContent);
-  }, [editor]);
-  if (!editor) return null;
+      if (isSameContent) return;
 
-  return (
-    <div className="space-y-5">
-      {editable && <EditorToolbar editor={editor} />}
+      editor.commands.setContent(initialContent);
+    }, [editor, initialContent]); // 🔴 FIXED: Added initialContent dependency to handle resets/cancels properly
 
-      <div
-        className="
+    if (!editor) return null;
+
+    return (
+      <div className="space-y-5">
+        {editable && <EditorToolbar editor={editor} />}
+
+        <div
+          className="
             rounded-[28px]
             border
             border-white/10
@@ -111,22 +121,23 @@ const JournalEditor = forwardRef(({ initialContent, editable = true }, ref) => {
             p-2
             backdrop-blur-xl
           "
-      >
-        <EditorContent editor={editor} />
-      </div>
+        >
+          <EditorContent editor={editor} />
+        </div>
 
-      <div className="flex items-center justify-between px-2">
-        <p className="text-xs text-slate-500">
-          {editable ? "Editing mode enabled" : "Reading mode enabled"}
-        </p>
+        <div className="flex items-center justify-between px-2">
+          <p className="text-xs text-slate-500">
+            {editable ? "Editing mode enabled" : "Reading mode enabled"}
+          </p>
 
-        <p className="text-xs text-slate-500">
-          {editor.storage.characterCount.characters()} characters
-        </p>
+          <p className="text-xs text-slate-500">
+            {editor.storage.characterCount.characters()} characters
+          </p>
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  }
+);
 
 JournalEditor.displayName = "JournalEditor";
 
