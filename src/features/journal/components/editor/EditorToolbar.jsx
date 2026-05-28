@@ -37,12 +37,25 @@ function EditorToolbar({ editor }) {
     const file = event.target.files?.[0];
 
     if (!file) return;
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Please upload a valid image or GIF.");
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("Image size must be under 5MB.");
+      return;
+    }
 
     try {
       const response = await mutateAsync(file);
 
       console.log(response);
-
+      toast.success("Image uploaded successfully!");
       // insert uploaded image into editor
       editor
         .chain()
@@ -51,7 +64,9 @@ function EditorToolbar({ editor }) {
           src: response.imageUrl,
         })
         .run();
+      event.target.value = ""; // reset file input
     } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to upload image.");
       console.error(error);
     }
   }
