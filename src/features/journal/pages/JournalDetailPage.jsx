@@ -12,6 +12,12 @@ import useJournal from "../hooks/useJournal";
 
 import useUpdateJournal from "../hooks/useUpdateJournal";
 
+import {
+  saveJournalDraft,
+  loadJournalDraft,
+  clearJournalDraft,
+} from "../utils/journalDraftStorage";
+
 function JournalDetailPage() {
   const navigate = useNavigate();
 
@@ -25,18 +31,48 @@ function JournalDetailPage() {
 
   const [title, setTitle] = useState("");
 
+  const [content, setContent] = useState(null);
+
   const [isEditing, setIsEditing] = useState(false);
 
+  // Load journal + draft
   useEffect(() => {
     if (!journal) return;
 
-    setTitle(journal.title);
-  }, [journal]);
+    const existingDraft = loadJournalDraft(journalId);
+
+    if (existingDraft) {
+      setTitle(existingDraft.title || journal.title);
+
+      setContent(existingDraft.content || journal.content);
+
+      toast.success("Loaded your unsaved changes.");
+    } else {
+      setTitle(journal.title);
+
+      setContent(journal.content);
+    }
+  }, [journal, journalId]);
+
+  // Autosave draft
+  useEffect(() => {
+    if (!isEditing) return;
+
+    const timeout = setTimeout(() => {
+      if (!content) return;
+
+      saveJournalDraft({
+        journalId,
+        title,
+        content,
+      });
+    }, 1000);
+
+    return () => clearTimeout(timeout);
+  }, [title, content, isEditing, journalId]);
 
   async function handleSave() {
     try {
-      const content = editorRef.current?.getJSON();
-
       if (!content) {
         toast.error("Editor content missing");
 
@@ -52,6 +88,8 @@ function JournalDetailPage() {
         },
       });
 
+      clearJournalDraft(journalId);
+
       toast.success("Journal saved successfully ✨");
 
       setIsEditing(false);
@@ -62,6 +100,20 @@ function JournalDetailPage() {
     } catch (error) {
       toast.error("Failed to save journal");
     }
+  }
+
+  function handleCancel() {
+    clearJournalDraft(journalId);
+
+    setTitle(journal.title);
+
+    setContent(journal.content);
+
+    editorRef.current?.commands.setContent(journal.content);
+
+    setIsEditing(false);
+
+    toast.success("Changes discarded.");
   }
 
   if (isLoading) {
@@ -117,6 +169,7 @@ function JournalDetailPage() {
                     py-1.5
                     text-sm
                     font-medium
+                    capitalize
                     text-slate-300
                     backdrop-blur-sm
                   "
@@ -160,10 +213,7 @@ function JournalDetailPage() {
                       Save Changes
                     </Button>
 
-                    <Button
-                      variant="secondary"
-                      onClick={() => setIsEditing(false)}
-                    >
+                    <Button variant="secondary" onClick={handleCancel}>
                       Cancel
                     </Button>
                   </>
@@ -210,6 +260,7 @@ function JournalDetailPage() {
                   bg-white/[0.04]
                   px-3
                   py-1
+                  capitalize
                 "
               >
                 {journal.category}
@@ -242,11 +293,14 @@ function JournalDetailPage() {
           </div>
 
           {/* Editor */}
-          <JournalEditor
-            ref={editorRef}
-            initialContent={journal.content}
-            editable={isEditing}
-          />
+          {content && (
+            <JournalEditor
+              ref={editorRef}
+              initialContent={content}
+              editable={isEditing}
+              onChange={setContent}
+            />
+          )}
         </div>
       </div>
     </div>

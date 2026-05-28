@@ -85,9 +85,15 @@ const JournalEditor = forwardRef(({ initialContent, editable = true }, ref) => {
   useEffect(() => {
     if (!editor || !initialContent) return;
 
-    editor.commands.setContent(initialContent);
-  }, [editor, initialContent]);
+    const currentContent = editor.getJSON();
 
+    const isSameContent =
+      JSON.stringify(currentContent) === JSON.stringify(initialContent);
+
+    if (isSameContent) return;
+
+    editor.commands.setContent(initialContent);
+  }, [editor]);
   if (!editor) return null;
 
   return (
