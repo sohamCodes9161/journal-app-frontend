@@ -4,6 +4,7 @@
 @import "./styles/utilities.css";
 @import "./styles/scrollbar.css";
 @import "./styles/animations.css";
+@import "./styles/editor.css";
 
 @tailwind base;
 @tailwind components;
