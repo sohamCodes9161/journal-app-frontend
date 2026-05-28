@@ -1,25 +1,21 @@
-function extractTextFromContent(content) {
-  if (!content?.content) {
-    return "";
-  }
+export const extractTextFromContent = (content) => {
+  if (!content?.content) return "";
 
-  let text = "";
+  const texts = [];
 
-  function traverse(nodes) {
+  const traverse = (nodes) => {
     nodes.forEach((node) => {
-      if (node.type === "text") {
-        text += `${node.text} `;
+      if (node.type === "text" && node.text) {
+        texts.push(node.text);
       }
 
       if (node.content) {
         traverse(node.content);
       }
     });
-  }
+  };
 
   traverse(content.content);
 
-  return text.trim();
-}
-
-export default extractTextFromContent;
+  return texts.join(" ").trim();
+};
