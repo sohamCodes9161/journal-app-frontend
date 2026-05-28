@@ -80,6 +80,7 @@ function JournalEditor({ content, onChange, editable = true }) {
 
       <div className="text-right text-xs text-slate-500">
         {editor.storage.characterCount.characters()} characters
+        console.log(await mutateAsync(file));
       </div>
     </div>
   );
