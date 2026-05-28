@@ -13,7 +13,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import CharacterCount from "@tiptap/extension-character-count";
 
 import EditorToolbar from "./EditorToolbar";
-
+import Image from "@tiptap/extension-image";
 function JournalEditor({ content, onChange, editable = true }) {
   const editor = useEditor({
     immediatelyRender: false,
@@ -50,6 +50,7 @@ function JournalEditor({ content, onChange, editable = true }) {
       TextAlign.configure({
         types: ["heading", "paragraph"],
       }),
+      Image,
     ],
 
     content,
