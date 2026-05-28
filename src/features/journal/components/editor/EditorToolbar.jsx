@@ -1,3 +1,8 @@
+import { ImageIcon } from "lucide-react";
+import { useRef } from "react";
+
+import { useUploadImage } from "../../hooks/useUploadImage";
+
 function ToolbarButton({ onClick, isActive, children }) {
   return (
     <button
@@ -24,6 +29,33 @@ function ToolbarButton({ onClick, isActive, children }) {
 }
 
 function EditorToolbar({ editor }) {
+  const fileInputRef = useRef(null);
+
+  const { mutateAsync, isPending } = useUploadImage();
+
+  async function handleImageUpload(event) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    try {
+      const response = await mutateAsync(file);
+
+      console.log(response);
+
+      // insert uploaded image into editor
+      editor
+        .chain()
+        .focus()
+        .setImage({
+          src: response.imageUrl,
+        })
+        .run();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   if (!editor) return null;
 
   return (
@@ -114,6 +146,33 @@ function EditorToolbar({ editor }) {
       <ToolbarButton onClick={() => editor.chain().focus().redo().run()}>
         Redo
       </ToolbarButton>
+
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={isPending}
+        className="
+          rounded-2xl
+          bg-white/5
+          px-3
+          py-2
+          text-slate-300
+          transition-all
+          duration-200
+          hover:bg-white/10
+          disabled:opacity-50
+        "
+      >
+        <ImageIcon size={18} />
+      </button>
+
+      <input
+        type="file"
+        accept="image/*"
+        ref={fileInputRef}
+        onChange={handleImageUpload}
+        className="hidden"
+      />
     </div>
   );
 }
