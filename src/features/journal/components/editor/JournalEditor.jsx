@@ -1,3 +1,5 @@
+import { forwardRef } from "react";
+
 import { EditorContent, useEditor } from "@tiptap/react";
 
 import StarterKit from "@tiptap/starter-kit";
@@ -12,9 +14,11 @@ import TextAlign from "@tiptap/extension-text-align";
 
 import CharacterCount from "@tiptap/extension-character-count";
 
-import EditorToolbar from "./EditorToolbar";
 import Image from "@tiptap/extension-image";
-function JournalEditor({ content, onChange, editable = true }) {
+
+import EditorToolbar from "./EditorToolbar";
+
+const JournalEditor = forwardRef(({ initialContent, editable = true }, ref) => {
   const editor = useEditor({
     immediatelyRender: false,
 
@@ -50,10 +54,11 @@ function JournalEditor({ content, onChange, editable = true }) {
       TextAlign.configure({
         types: ["heading", "paragraph"],
       }),
+
       Image,
     ],
 
-    content,
+    content: initialContent,
 
     editable,
 
@@ -65,11 +70,12 @@ function JournalEditor({ content, onChange, editable = true }) {
           "min-h-[400px] rounded-3xl border border-white/10 bg-white/5 px-6 py-5 text-slate-200 outline-none transition-all duration-200 focus:border-violet-400 prose prose-invert prose-p:text-slate-200 prose-headings:text-white prose-strong:text-white prose-li:text-slate-200 prose-code:text-violet-300 prose-blockquote:border-violet-500 max-w-none overflow-y-auto",
       },
     },
-
-    onUpdate: ({ editor }) => {
-      onChange?.(editor.getJSON());
-    },
   });
+
+  // expose editor instance to parent
+  if (ref) {
+    ref.current = editor;
+  }
 
   if (!editor) return null;
 
@@ -81,10 +87,9 @@ function JournalEditor({ content, onChange, editable = true }) {
 
       <div className="text-right text-xs text-slate-500">
         {editor.storage.characterCount.characters()} characters
-        console.log(await mutateAsync(file));
       </div>
     </div>
   );
-}
+});
 
 export default JournalEditor;

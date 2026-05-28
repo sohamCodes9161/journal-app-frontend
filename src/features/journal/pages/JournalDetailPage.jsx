@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useParams } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+
+import { useNavigate, useParams } from "react-router-dom";
+
 import toast from "react-hot-toast";
+
 import { Button, Input, PageHeader } from "@/components/ui";
 
 import JournalEditor from "../components/editor/JournalEditor";
@@ -12,7 +14,10 @@ import useUpdateJournal from "../hooks/useUpdateJournal";
 
 function JournalDetailPage() {
   const navigate = useNavigate();
+
   const { journalId } = useParams();
+
+  const editorRef = useRef(null);
 
   const { data: journal, isLoading, isError } = useJournal(journalId);
 
@@ -20,18 +25,22 @@ function JournalDetailPage() {
 
   const [title, setTitle] = useState("");
 
-  const [content, setContent] = useState(null);
-
   useEffect(() => {
     if (!journal) return;
 
     setTitle(journal.title);
-
-    setContent(journal.content);
   }, [journal]);
 
   async function handleSave() {
     try {
+      const content = editorRef.current?.getJSON();
+
+      if (!content) {
+        toast.error("Editor content missing");
+
+        return;
+      }
+
       await updateJournalMutation.mutateAsync({
         journalId,
 
@@ -107,7 +116,7 @@ function JournalDetailPage() {
         ))}
       </div>
 
-      {content && <JournalEditor content={content} onChange={setContent} />}
+      <JournalEditor ref={editorRef} initialContent={journal.content} />
 
       <Button onClick={handleSave} isLoading={updateJournalMutation.isPending}>
         Save Changes
