@@ -21,6 +21,8 @@ export async function createJournal(data) {
 }
 
 export async function updateJournal({ journalId, data }) {
+  console.log("Updating journal with ID:", journalId);
+  console.log("Data being sent:", data);
   const response = await API.patch(`/journals/${journalId}`, data);
 
   return response.data.data;

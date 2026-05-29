@@ -2,7 +2,7 @@ import { ImageIcon } from "lucide-react";
 import { useRef } from "react";
 
 import { useUploadImage } from "../../hooks/useUploadImage";
-
+import { toast } from "react-hot-toast";
 function ToolbarButton({ onClick, isActive, children }) {
   return (
     <button
@@ -35,42 +35,35 @@ function EditorToolbar({ editor }) {
 
   async function handleImageUpload(event) {
     const file = event.target.files?.[0];
-
     if (!file) return;
-    const MAX_FILE_SIZE = 5 * 1024 * 1024;
-
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("Please upload a valid image or GIF.");
-      return;
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error("Image size must be under 5MB.");
-      return;
-    }
 
     try {
+      // ✅ FIX: Delete the manual FormData creation here.
+      // Just pass the raw 'file' object directly to the mutation!
       const response = await mutateAsync(file);
 
-      console.log(response);
-      toast.success("Image uploaded successfully!");
-      // insert uploaded image into editor
+      console.log("UPLOAD RESPONSE:", response);
+
+      const url = response?.url;
+      const mediaId = response?.mediaId;
+
       editor
         .chain()
         .focus()
         .setImage({
-          src: response.imageUrl,
+          src: url,
+          mediaId,
         })
         .run();
-      event.target.value = ""; // reset file input
+
+      toast.success("Image uploaded!");
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Failed to upload image.");
-      console.error(error);
+      console.log("UPLOAD ERROR:", error);
+      toast.error(error?.response?.data?.message || "Upload failed");
+    } finally {
+      event.target.value = "";
     }
   }
-
   if (!editor) return null;
 
   return (

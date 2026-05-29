@@ -56,7 +56,18 @@ const JournalEditor = forwardRef(
           types: ["heading", "paragraph"],
         }),
 
-        Image,
+        // Remove the standalone `Image,` from the extensions array and replace it with this:
+        Image.extend({
+          addAttributes() {
+            return {
+              ...this.parent?.(),
+              mediaId: {
+                default: null,
+              },
+            };
+          },
+        }),
+        ,
       ],
 
       content: initialContent,
