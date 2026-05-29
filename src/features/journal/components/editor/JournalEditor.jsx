@@ -18,6 +18,8 @@ import Image from "@tiptap/extension-image";
 
 import EditorToolbar from "./EditorToolbar";
 
+import { InlineEmoji } from "./extensions/InlineEmoji";
+
 const JournalEditor = forwardRef(
   ({ initialContent, editable = true, onChange }, ref) => {
     const editor = useEditor({
@@ -67,7 +69,7 @@ const JournalEditor = forwardRef(
             };
           },
         }),
-        ,
+        InlineEmoji,
       ],
 
       content: initialContent,
