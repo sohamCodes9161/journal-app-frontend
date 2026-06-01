@@ -1,6 +1,7 @@
+// src/features/journal/components/editor/JournalEditor.jsx
 import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { BubbleMenu } from "@tiptap/react/menus";
+import { BubbleMenu } from "@tiptap/react/menus"; // 🌟 Preserved separate module routing
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
@@ -12,7 +13,6 @@ import EditorToolbar from "./EditorToolbar";
 import { InlineEmoji } from "./extensions/InlineEmoji";
 import { ExtendedImage } from "../../utils/ExtendedImage";
 
-// 🌟 CUSTOM INLINE FONT SIZE ENGINE
 const FontSize = Mark.create({
   name: "fontSize",
   addAttributes() {
@@ -53,7 +53,6 @@ const JournalEditor = forwardRef(
   ({ initialContent, editable = true, onChange }, ref) => {
     const editor = useEditor({
       immediatelyRender: false,
-
       extensions: [
         StarterKit.configure({
           history: true,
@@ -62,36 +61,43 @@ const JournalEditor = forwardRef(
           heading: { levels: [1, 2, 3] },
         }),
         Placeholder.configure({
-          placeholder: "Write freely. No pressure. Just thoughts...",
+          placeholder: "Start letting your thoughts flow here...",
         }),
         Underline,
         Highlight,
         CharacterCount,
-        FontSize, // <-- Injected sizing core
-        TextAlign.configure({
-          types: ["heading", "paragraph"],
-        }),
+        FontSize,
+        TextAlign.configure({ types: ["heading", "paragraph"] }),
         ExtendedImage,
         InlineEmoji,
       ],
-
       content: initialContent,
       editable,
       autofocus: false,
-
       onUpdate: ({ editor }) => {
-        if (onChange) {
-          onChange(editor.getJSON());
-        }
+        if (onChange) onChange(editor.getJSON());
       },
-
       editorProps: {
         attributes: {
           class:
-            "min-h-[400px] rounded-3xl border border-white/10 bg-white/5 px-6 py-5 text-slate-200 outline-none transition-all duration-200 focus:border-violet-400 prose prose-invert prose-p:text-slate-200 prose-headings:text-white prose-strong:text-white prose-li:text-slate-200 prose-code:text-violet-300 prose-blockquote:border-violet-500 max-w-none overflow-y-auto",
+            "w-full min-w-full block min-h-[350px] rounded-2xl border border-white/5 bg-white/[0.01] px-5 py-4 text-slate-200 outline-none transition-all duration-200 focus:border-violet-500/20 prose prose-invert max-w-none overflow-y-auto text-sm",
         },
       },
     });
+
+    useEffect(() => {
+      if (!editor || !initialContent) return;
+
+      const currentContentStr = JSON.stringify(editor.getJSON());
+      const incomingContentStr =
+        typeof initialContent === "string"
+          ? initialContent
+          : JSON.stringify(initialContent);
+
+      if (currentContentStr !== incomingContentStr) {
+        editor.commands.setContent(initialContent, false);
+      }
+    }, [editor, initialContent]);
 
     useImperativeHandle(ref, () => editor, [editor]);
 
@@ -100,107 +106,109 @@ const JournalEditor = forwardRef(
       editor.setEditable(editable);
     }, [editor, editable]);
 
-    useEffect(() => {
-      if (!editor || !initialContent) return;
-      const currentContent = editor.getJSON();
-      if (JSON.stringify(currentContent) === JSON.stringify(initialContent))
-        return;
-      editor.commands.setContent(initialContent);
-    }, [editor, initialContent]);
-
     if (!editor) return null;
 
-    const updateImageLayout = (attrs) => {
-      editor.chain().focus().updateAttributes("image", attrs).run();
-    };
-
     return (
-      <div className="space-y-5 relative">
+      <div className="space-y-3 w-full max-w-4xl mx-auto block">
         {editable && <EditorToolbar editor={editor} />}
 
-        {/* FLOATING IMAGE BUBBLE MENU */}
         {editable && (
           <BubbleMenu
             editor={editor}
-            tippyOptions={{ duration: 150, placement: "top" }}
+            tippyOptions={{ duration: 150 }}
             shouldShow={({ editor }) => editor.isActive("image")}
           >
-            <div className="flex flex-wrap items-center gap-1.5 bg-slate-950 border border-violet-500/40 p-2 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-100 z-50 text-white">
-              <span className="text-[10px] font-bold tracking-wider uppercase text-violet-400 px-1 select-none">
-                Image Layout:
-              </span>
-              <button
-                type="button"
-                onClick={() => updateImageLayout({ alignment: "left" })}
-                className="px-2 py-1 text-xs rounded-md bg-white/5 hover:bg-white/10 text-slate-200 transition font-medium"
-              >
-                ⬅️ Left Wrap
-              </button>
-              <button
-                type="button"
-                onClick={() => updateImageLayout({ alignment: "center" })}
-                className="px-2 py-1 text-xs rounded-md bg-white/5 hover:bg-white/10 text-slate-200 transition font-medium"
-              >
-                ⏹️ Center
-              </button>
-              <button
-                type="button"
-                onClick={() => updateImageLayout({ alignment: "right" })}
-                className="px-2 py-1 text-xs rounded-md bg-white/5 hover:bg-white/10 text-slate-200 transition font-medium"
-              >
-                ➡️ Right Wrap
-              </button>
-
-              <div className="w-px h-4 bg-white/10 mx-0.5" />
-
-              <button
-                type="button"
-                onClick={() => updateImageLayout({ width: "25%" })}
-                className="px-2 py-1 text-[11px] rounded-md bg-white/5 hover:bg-white/10 text-slate-300 transition"
-              >
-                25%
-              </button>
-              <button
-                type="button"
-                onClick={() => updateImageLayout({ width: "50%" })}
-                className="px-2 py-1 text-[11px] rounded-md bg-white/5 hover:bg-white/10 text-slate-300 transition"
-              >
-                50%
-              </button>
-              <button
-                type="button"
-                onClick={() => updateImageLayout({ width: "100%" })}
-                className="px-2 py-1 text-[11px] rounded-md bg-white/5 hover:bg-white/10 text-slate-300 transition"
-              >
-                100%
-              </button>
-
-              <div className="w-px h-4 bg-white/10 mx-0.5" />
-
+            <div className="flex items-center gap-1 bg-slate-900/95 border border-white/10 p-1.5 rounded-xl shadow-2xl backdrop-blur-md text-white">
               <button
                 type="button"
                 onClick={() =>
-                  editor.chain().focus().createParagraphNear().focus().run()
+                  editor
+                    .chain()
+                    .focus()
+                    .updateAttributes("image", { alignment: "left" })
+                    .run()
                 }
-                className="px-2.5 py-1 text-[11px] rounded-md bg-violet-600 hover:bg-violet-500 font-bold text-white transition flex items-center gap-1"
+                className="px-2 py-1 text-xs font-medium rounded-md text-slate-300 hover:bg-white/10 transition-colors"
               >
-                ⏎ Line Below
+                Left
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  editor
+                    .chain()
+                    .focus()
+                    .updateAttributes("image", { alignment: "center" })
+                    .run()
+                }
+                className="px-2 py-1 text-xs font-medium rounded-md text-slate-300 hover:bg-white/10 transition-colors"
+              >
+                Center
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  editor
+                    .chain()
+                    .focus()
+                    .updateAttributes("image", { alignment: "right" })
+                    .run()
+                }
+                className="px-2 py-1 text-xs font-medium rounded-md text-slate-300 hover:bg-white/10 transition-colors"
+              >
+                Right
+              </button>
+              <div className="w-px h-3.5 bg-white/10 mx-1" />
+              <button
+                type="button"
+                onClick={() =>
+                  editor
+                    .chain()
+                    .focus()
+                    .updateAttributes("image", { size: "small" })
+                    .run()
+                }
+                className="w-6 h-6 flex items-center justify-center text-[10px] font-bold rounded-md text-slate-400 hover:bg-white/10 hover:text-white"
+              >
+                S
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  editor
+                    .chain()
+                    .focus()
+                    .updateAttributes("image", { size: "medium" })
+                    .run()
+                }
+                className="w-6 h-6 flex items-center justify-center text-[10px] font-bold rounded-md text-slate-400 hover:bg-white/10 hover:text-white"
+              >
+                M
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  editor
+                    .chain()
+                    .focus()
+                    .updateAttributes("image", { size: "large" })
+                    .run()
+                }
+                className="w-6 h-6 flex items-center justify-center text-[10px] font-bold rounded-md text-slate-400 hover:bg-white/10 hover:text-white"
+              >
+                L
               </button>
             </div>
           </BubbleMenu>
         )}
 
-        <div className="rounded-[28px] border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.02] p-2 backdrop-blur-xl">
-          <EditorContent editor={editor} />
+        <div className="w-full block rounded-2xl border border-white/10 bg-slate-950/10 backdrop-blur-xl p-1">
+          <EditorContent editor={editor} className="w-full block" />
         </div>
 
-        <div className="flex items-center justify-between px-2">
-          <p className="text-xs text-slate-500">
-            {editable ? "Editing mode enabled" : "Reading mode enabled"}
-          </p>
-          <p className="text-xs text-slate-500">
-            {editor.storage.characterCount.characters()} characters
-          </p>
+        <div className="flex items-center justify-between px-1 text-[11px] text-slate-500 select-none">
+          <p>{editable ? "Personal Sanctuary Open" : "Archived Thought"}</p>
+          <p>{editor.storage.characterCount.characters()} characters</p>
         </div>
       </div>
     );
