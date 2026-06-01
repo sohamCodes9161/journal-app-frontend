@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { createJournal } from "../api/journalApi";
 
-function useCreateJournal() {
+export const useCreateJournal = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -16,6 +16,4 @@ function useCreateJournal() {
       });
     },
   });
-}
-
-export default useCreateJournal;
+};
