@@ -1,40 +1,65 @@
-// src/components/editor/extensions/ExtendedImage.js
+// src/features/journal/utils/ExtendedImage.js
 import Image from "@tiptap/extension-image";
 
 export const ExtendedImage = Image.extend({
-  // 1. Register custom settings for width and alignment
+  inline: true,
+  group: "inline",
+
   addAttributes() {
     return {
-      src: { default: null },
-      alt: { default: null },
-      mediaId: { default: null },
-      width: { default: "100%" }, // Controls scaling size
-      alignment: { default: "center" }, // left, center, right
+      ...this.parent?.(),
+      size: {
+        default: "medium",
+        parseHTML: (element) => element.getAttribute("data-size") || "medium",
+        renderHTML: (attributes) => ({ "data-size": attributes.size }),
+      },
+      alignment: {
+        default: "center",
+        parseHTML: (element) =>
+          element.getAttribute("data-alignment") || "center",
+        renderHTML: (attributes) => ({
+          "data-alignment": attributes.alignment,
+        }),
+      },
     };
   },
 
-  // 2. Transform those settings into elegant Tailwind wrap classes dynamically
-  renderHTML({ HTMLAttributes }) {
-    const alignment = HTMLAttributes.alignment || "center";
-    const width = HTMLAttributes.width || "100%";
+  // 🌟 FIXED: Destructured 'node' to pull directly from live mutable attributes (node.attrs)
+  renderHTML({ node, HTMLAttributes }) {
+    const size = node.attrs.size || "medium";
+    const alignment = node.attrs.alignment || "center";
 
-    let layoutClasses =
-      "rounded-2xl max-w-full border border-white/5 transition-all duration-300 ";
+    // Dynamic Width Calculations
+    let width = "50%";
+    if (size === "small") width = "25%";
+    if (size === "large") width = "100%";
+
+    // Flow & Layout Calculations
+    let display = "inline-block";
+    let float = "none";
+    let margin = "4px 8px";
 
     if (alignment === "left") {
-      layoutClasses += "float-left mr-4 mb-4 clear-left";
+      float = "left";
+      display = "inline-block";
+      margin = "8px 16px 8px 0";
     } else if (alignment === "right") {
-      layoutClasses += "float-right ml-4 mb-4 clear-right";
-    } else {
-      layoutClasses += "block mx-auto my-6";
+      float = "right";
+      display = "inline-block";
+      margin = "8px 0 8px 16px";
+    } else if (alignment === "center") {
+      float = "none";
+      display = "block";
+      margin = "16px auto";
     }
 
     return [
       "img",
       {
         ...HTMLAttributes,
-        class: layoutClasses,
-        style: `width: ${width}; display: ${alignment === "center" ? "block" : "inline-block"};`,
+        // 🌟 FIXED: Added !important to completely override Tailwind Prose block style injections
+        style: `width: ${width} !important; max-width: 100% !important; height: auto !important; display: ${display} !important; float: ${float} !important; margin: ${margin} !important; transition: all 0.2s ease-in-out;`,
+        class: "rounded-xl border border-white/5 shadow-lg cursor-pointer",
       },
     ];
   },
