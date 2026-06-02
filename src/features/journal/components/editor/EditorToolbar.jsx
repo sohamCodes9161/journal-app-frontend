@@ -11,12 +11,15 @@ import {
   Undo,
   Redo,
   ImageIcon,
-  Type as FontIcon,
 } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
-import { useUploadImage } from "../../hooks/useUploadImage";
 import { toast } from "react-hot-toast";
 import { CUSTOM_EMOJIS, EMOJI_CATEGORIES } from "../../utils/customEmojis";
+
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 const FONT_SIZES = [
   { label: "Small (12px)", value: "12px" },
@@ -52,27 +55,33 @@ function ToolbarDivider() {
   return <div className="w-px h-5 bg-white/10 self-center mx-1 select-none" />;
 }
 
-function EditorToolbar({ editor }) {
+/**
+ * EditorToolbar
+ *
+ * Props:
+ *  - editor          : TipTap editor instance
+ *  - pendingFilesRef : React ref holding a Map<blobUrl, File>
+ *                      Populated here when user picks a file.
+ *                      Consumed by the save handler in the parent page.
+ */
+function EditorToolbar({ editor, pendingFilesRef }) {
   const fileInputRef = useRef(null);
-  const { mutateAsync, isPending } = useUploadImage();
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeCategory, setActiveCategory] = useState("faces");
   const pickerRef = useRef(null);
   const scrollContainerRef = useRef(null);
 
-  // 🔴 FIX 1: Listen for ALL text transactions to instantly synchronize active styling highlights
+  // Force re-render on every editor transaction so toolbar highlights stay in sync
   const [, setTick] = useState(0);
   useEffect(() => {
     if (!editor) return;
     const forceRerender = () => setTick((t) => t + 1);
     editor.on("transaction", forceRerender);
-    return () => {
-      editor.off("transaction", forceRerender);
-    };
+    return () => editor.off("transaction", forceRerender);
   }, [editor]);
 
-  // Handle outside clicks for Emoji Picker
+  // Close emoji picker when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (pickerRef.current && !pickerRef.current.contains(event.target)) {
@@ -82,12 +91,12 @@ function EditorToolbar({ editor }) {
     if (showEmojiPicker) {
       document.addEventListener("mousedown", handleClickOutside);
     }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showEmojiPicker]);
 
   if (!editor) return null;
+
+  // ─── Emoji helpers ────────────────────────────────────────────────────────
 
   const handleTabClick = (categoryId) => {
     setActiveCategory(categoryId);
@@ -120,16 +129,18 @@ function EditorToolbar({ editor }) {
       .focus()
       .insertEmoji({ src: emoji.url, alt: emoji.name })
       .run();
+    setShowEmojiPicker(false);
   };
 
-  // Find currently active font size to display inside selection element box
+  // ─── Font size helpers ────────────────────────────────────────────────────
+
   const getCurrentFontSize = () => {
     for (const sizeOption of FONT_SIZES) {
       if (editor.isActive("fontSize", { size: sizeOption.value })) {
         return sizeOption.value;
       }
     }
-    return "14px"; // default structural baseline
+    return "14px";
   };
 
   const handleFontSizeChange = (value) => {
@@ -140,36 +151,56 @@ function EditorToolbar({ editor }) {
     }
   };
 
-  async function handleImageUpload(event) {
+  // ─── Image pick → local blob preview (NO Cloudinary call here) ───────────
+
+  function handleImageButtonClick() {
+    fileInputRef.current?.click();
+  }
+
+  function handleFileChange(event) {
     const file = event.target.files?.[0];
     if (!file) return;
-    try {
-      const response = await mutateAsync(file);
-      const rawUrl = response?.url;
-      const mediaId = response?.mediaId;
-      const optimizedUrl =
-        rawUrl && rawUrl.includes("cloudinary.com")
-          ? rawUrl.replace("/upload/", "/upload/f_auto,q_auto,w_1200,c_limit/")
-          : rawUrl;
 
-      editor
-        .chain()
-        .focus()
-        .setImage({ src: optimizedUrl, mediaId })
-        .createParagraphNear()
-        .focus()
-        .run();
-      toast.success("Image uploaded!");
-    } catch (error) {
-      toast.error("Upload failed");
-    } finally {
+    // Validate type
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      toast.error("Only JPEG, PNG, GIF, and WebP files are allowed.");
       event.target.value = "";
+      return;
     }
+
+    // Validate size
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      toast.error(`File too large. Maximum size is ${MAX_FILE_SIZE_MB}MB.`);
+      event.target.value = "";
+      return;
+    }
+
+    // Create a local object URL for instant preview — no upload yet
+    const blobUrl = URL.createObjectURL(file);
+
+    // Store the File in the pending map so the save handler can upload it later
+    if (pendingFilesRef?.current) {
+      pendingFilesRef.current.set(blobUrl, file);
+    }
+
+    // Insert into editor using the blob URL — renders instantly
+    editor
+      .chain()
+      .focus()
+      .setImage({ src: blobUrl, mediaId: null })
+      .createParagraphNear()
+      .focus()
+      .run();
+
+    // Clear the input so the same file can be picked again if needed
+    event.target.value = "";
   }
+
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="flex items-center justify-between gap-4 flex-wrap">
-      {/* LEFT: Standard Compressed Layout Items */}
+      {/* Main toolbar strip */}
       <div
         className="
           sticky top-4 z-10 flex items-center gap-1 rounded-2xl border border-white/10
@@ -191,7 +222,7 @@ function EditorToolbar({ editor }) {
 
         <ToolbarDivider />
 
-        {/* 🌟 FIX 3: INLINE FONT SIZE ACCORDION SELECTION */}
+        {/* Font size selector */}
         <div className="relative flex items-center px-1">
           <select
             value={getCurrentFontSize()}
@@ -300,25 +331,27 @@ function EditorToolbar({ editor }) {
 
         <ToolbarDivider />
 
+        {/* Image button — triggers local blob preview only */}
         <button
           type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isPending}
-          title="Upload Image"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={handleImageButtonClick}
+          title="Insert Image or GIF"
           className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all duration-200"
         >
           <ImageIcon size={16} />
         </button>
+
         <input
+          ref={fileInputRef}
           type="file"
           accept="image/*"
-          ref={fileInputRef}
-          onChange={handleImageUpload}
           className="hidden"
+          onChange={handleFileChange}
         />
       </div>
 
-      {/* RIGHT: High-Level Unified Emoji Station Container */}
+      {/* Emoji picker */}
       <div className="relative" ref={pickerRef}>
         <button
           type="button"
@@ -333,7 +366,6 @@ function EditorToolbar({ editor }) {
           <span className="text-xs">Emojis</span>
         </button>
 
-        {/* 🌟 FIX 2: UNCONSTRAINED FLOATING SIDE PICKER HOOD */}
         {showEmojiPicker && (
           <div className="absolute right-0 top-full mt-3 z-50 w-80 p-4 rounded-2xl border border-white/10 bg-slate-950/95 backdrop-blur-2xl shadow-2xl flex flex-col gap-3 animate-in fade-in slide-in-from-top-3 duration-200 text-white">
             <div className="flex gap-1 border-b border-white/5 pb-2 overflow-x-auto scrollbar-none">
@@ -393,6 +425,7 @@ function EditorToolbar({ editor }) {
                 );
               })}
             </div>
+
             <div className="text-[10px] text-center text-slate-500 border-t border-white/5 pt-2 select-none">
               Scroll freely across categories
             </div>
