@@ -14,6 +14,7 @@ import DashboardLayout from "@/layouts/DashboardLayout";
 import CreateJournalPage from "@/features/journal/pages/CreateJournalPage";
 import ProtectedRoutes from "./ProtectedRoutes";
 import PublicOnlyRoutes from "./PublicOnlyRoutes";
+import SettingsPage from "@/pages/SettingsPage";
 
 const router = createBrowserRouter([
   {
@@ -75,6 +76,10 @@ const router = createBrowserRouter([
           {
             path: "journals/:journalId",
             element: <JournalDetailPage />,
+          },
+          {
+            path: "settings",
+            element: <SettingsPage />,
           },
         ],
       },
