@@ -78,12 +78,19 @@ function JournalFeedPage() {
 
   return (
     <div className="space-y-6">
-      {/* Top Header Row with Username Avatar Corner Injection */}
-      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between border-b border-white/5 pb-4">
+      {/* Top Header Row with Action Redirection Button Insertion */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-white/5 pb-5">
         <PageHeader
           title="Your Journals"
           description="Moments, reflections, and thoughts captured over time."
         />
+
+        {/* Global Floating Action Element Trigger */}
+        <Link to="/app/journals/new" className="w-full sm:w-auto">
+          <Button className="w-full sm:w-auto bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-violet-500/10 transition-all active:scale-[0.98]">
+            + Create New Journal
+          </Button>
+        </Link>
       </div>
 
       {/* Control Panel Filter Anchor Row */}
