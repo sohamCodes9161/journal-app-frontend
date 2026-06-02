@@ -1,9 +1,19 @@
+import React from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui";
-
+import { AuthContext } from "@/features/auth/providers/AuthProvider";
 import useLogout from "@/features/auth/hooks/useLogout";
 
 function Navbar() {
+  const { user } = React.useContext(AuthContext);
   const logoutMutation = useLogout();
+
+  // Safe fallback values matching your MongoDB schema defaults
+  const username = user?.username || "Explorer";
+  const avatarUrl =
+    user?.profilePicture ||
+    `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
+  const journalingStreak = user?.streaks?.journalingStreak || 0;
 
   return (
     <header
@@ -17,19 +27,94 @@ function Navbar() {
         backdrop-blur-xl
       "
     >
-      <div className="flex h-16 items-center justify-between px-4">
+      <div className="flex h-16 items-center justify-between px-4 sm:px-6">
+        {/* Left Side: Personal Greeting context */}
         <div>
-          <h1 className="text-sm font-medium text-slate-300">Welcome back</h1>
+          <h1 className="text-sm font-medium text-slate-400">
+            Welcome back,{" "}
+            <span className="text-slate-100 font-semibold">{username}</span>
+          </h1>
         </div>
 
-        <Button
-          variant="secondary"
-          size="sm"
-          isLoading={logoutMutation.isPending}
-          onClick={() => logoutMutation.mutate()}
-        >
-          Logout
-        </Button>
+        {/* Right Side: Global Identity Elements & Actions Container */}
+        <div className="flex items-center gap-4">
+          {/* Dynamic Streak Badge (Shows only if streak > 0) */}
+          {journalingStreak > 0 && (
+            <div
+              className="
+                flex 
+                items-center 
+                gap-1.5 
+                bg-amber-500/10 
+                border 
+                border-amber-500/20 
+                text-amber-400 
+                text-[11px] 
+                font-bold 
+                px-2.5 
+                py-1 
+                rounded-full
+                animate-pulse
+              "
+              title="Your consecutive daily journaling streak!"
+            >
+              🔥 {journalingStreak} Day Streak
+            </div>
+          )}
+
+          {/* Interactive User Dashboard Avatar Widget */}
+          <Link
+            to="/app/settings"
+            className="
+              flex 
+              items-center 
+              gap-2.5 
+              bg-white/[0.02] 
+              border 
+              border-white/5 
+              hover:border-violet-500/30 
+              pl-3 
+              pr-2 
+              py-1 
+              rounded-xl 
+              transition 
+              group
+            "
+          >
+            <span className="text-xs font-semibold text-slate-300 group-hover:text-slate-100 transition hidden sm:inline-block">
+              {username}
+            </span>
+            <img
+              src={avatarUrl}
+              alt={username}
+              className="
+                w-7 
+                h-7 
+                rounded-lg 
+                border 
+                border-white/10 
+                group-hover:border-violet-400/50 
+                bg-slate-900 
+                object-cover 
+                transition
+              "
+            />
+          </Link>
+
+          {/* Divider */}
+          <div className="h-4 w-px bg-white/10 hidden sm:block" />
+
+          {/* Existing Logout Mutation Handler Button */}
+          <Button
+            variant="secondary"
+            size="sm"
+            isLoading={logoutMutation.isPending}
+            onClick={() => logoutMutation.mutate()}
+            className="bg-white/5 hover:bg-white/10 border border-white/5 text-xs font-medium"
+          >
+            Logout
+          </Button>
+        </div>
       </div>
     </header>
   );
