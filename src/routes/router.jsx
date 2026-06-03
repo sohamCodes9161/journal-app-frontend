@@ -4,7 +4,7 @@ import HomePage from "@/pages/HomePage";
 
 import DashboardPage from "@/pages/DashboardPage";
 import JournalPage from "@/pages/JournalPage";
-import TodosPage from "@/pages/TodosPage";
+import TodosPage from "@/features/todos/pages/TodosPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import JournalFeedPage from "@/features/journal/pages/JournalFeedPage";
 import LoginPage from "@/features/auth/pages/LoginPage";
@@ -16,6 +16,7 @@ import ProtectedRoutes from "./ProtectedRoutes";
 import PublicOnlyRoutes from "./PublicOnlyRoutes";
 import SettingsPage from "@/pages/SettingsPage";
 
+import CreateTodoPage from "@/features/todos/pages/CreateTodoPage";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -64,7 +65,10 @@ const router = createBrowserRouter([
             path: "todos",
             element: <TodosPage />,
           },
-
+          {
+            path: "todos/new",
+            element: <CreateTodoPage />,
+          },
           {
             path: "analytics",
             element: <AnalyticsPage />,
