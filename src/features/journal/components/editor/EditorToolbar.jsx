@@ -129,7 +129,6 @@ function EditorToolbar({ editor, pendingFilesRef }) {
       .focus()
       .insertEmoji({ src: emoji.url, alt: emoji.name })
       .run();
-    setShowEmojiPicker(false);
   };
 
   // ─── Font size helpers ────────────────────────────────────────────────────
