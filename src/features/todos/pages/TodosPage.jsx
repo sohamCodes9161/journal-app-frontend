@@ -6,7 +6,11 @@ import useTodos from "../hooks/useTodos";
 
 function TodosPage() {
   const { data, isLoading, isError } = useTodos();
-
+  const priorityStyles = {
+    low: "bg-emerald-500/10 text-emerald-300",
+    medium: "bg-amber-500/10 text-amber-300",
+    high: "bg-rose-500/10 text-rose-300",
+  };
   if (isLoading) {
     return (
       <div className="py-20 text-center text-slate-400">Loading todos...</div>
@@ -37,14 +41,24 @@ function TodosPage() {
       </div>
 
       {todos.length === 0 ? (
-        <div className="py-24 text-center">
-          <h2 className="text-2xl font-semibold text-white">
-            Nothing planned yet
-          </h2>
+        <div
+          className="
+    rounded-[32px]
+    border border-white/10
+    bg-white/[0.04]
+    p-12
+    text-center
+  "
+        >
+          <h2 className="text-2xl font-semibold text-white">No tasks yet</h2>
 
           <p className="mt-3 text-slate-400">
-            Add your first task and begin moving forward.
+            Give your future self a gentle starting point.
           </p>
+
+          <Link to="/app/todos/new">
+            <Button className="mt-6">Create First Todo</Button>
+          </Link>
         </div>
       ) : (
         <div className="grid gap-5">
@@ -64,7 +78,17 @@ function TodosPage() {
               <p className="mt-2 text-slate-400">{todo.description}</p>
 
               <div className="mt-4 flex gap-3 text-sm">
-                <span>{todo.priority}</span>
+                <span
+                  className={`
+    rounded-full
+    px-3
+    py-1
+    text-xs
+    ${priorityStyles[todo.priority]}
+  `}
+                >
+                  {todo.priority}
+                </span>
                 <span>{todo.status}</span>
                 <span>{todo.horizonType}</span>
               </div>
