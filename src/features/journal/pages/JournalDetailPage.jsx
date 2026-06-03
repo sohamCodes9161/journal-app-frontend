@@ -11,6 +11,7 @@ import {
   loadJournalDraft,
   clearJournalDraft,
 } from "../utils/journalDraftStorage";
+import { JOURNAL_THEMES } from "../utils/journalThemes";
 
 function JournalDetailPage() {
   const navigate = useNavigate();
@@ -25,6 +26,63 @@ function JournalDetailPage() {
   const [initialEditorContent, setInitialEditorContent] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
+  // Local Customization States
+  const [selectedTheme, setSelectedTheme] = useState("cosmic-dark");
+  const [layoutWidth, setLayoutWidth] = useState("max-w-5xl");
+
+  useEffect(() => {
+    if (!journal) return;
+
+    // Load theme configuration from database if it exists
+    if (journal.styleSettings?.themePreset) {
+      setSelectedTheme(journal.styleSettings.themePreset);
+    } else if (
+      ["sad", "reflective", "anxious"].includes(journal.mood?.toLowerCase())
+    ) {
+      setSelectedTheme("cosmic-dark");
+    } else if (
+      ["happy", "grateful", "peaceful"].includes(journal.mood?.toLowerCase())
+    ) {
+      setSelectedTheme("floral-sanctuary");
+    } else {
+      setSelectedTheme("minimal-matte");
+    }
+
+    if (journal.styleSettings?.layoutWidth) {
+      setLayoutWidth(journal.styleSettings.layoutWidth);
+    }
+  }, [journal]);
+
+  // ✅ SAFEFALL BACK FIX: Added deep nested chaining protection to completely avoid the 'pageBg' crash
+  const currentStyle = JOURNAL_THEMES?.[selectedTheme] ||
+    JOURNAL_THEMES?.["minimal-matte"] || {
+      pageBg: "bg-slate-950",
+      textStyle: "text-slate-200",
+      editorCanvas: "bg-slate-900/50 border-white/10",
+      accentGlow: "opacity-0",
+    };
+
+  // 🌍 GLOBAL BACKGROUND FORCE INJECTOR: This maps the flowers/images to the outer body wrapper frame
+  useEffect(() => {
+    if (!currentStyle?.pageBg) return;
+
+    // Keep track of whatever setup the app layout had before
+    const originalBodyClasses = document.body.className;
+
+    // Inject our image parameters directly into the DOM window root
+    document.body.classList.add(...currentStyle.pageBg.split(" "));
+
+    // Cleanup: Reset body wrapper back to system styles when navigating away
+    return () => {
+      currentStyle.pageBg.split(" ").forEach((className) => {
+        document.body.classList.remove(className);
+      });
+      if (originalBodyClasses) {
+        document.body.className = originalBodyClasses;
+      }
+    };
+  }, [currentStyle]);
+
   const handleDelete = async () => {
     if (
       !window.confirm(
@@ -35,7 +93,6 @@ function JournalDetailPage() {
 
     try {
       await deleteJournalMutation.mutateAsync(journalId);
-      // useDeleteJournal handles its own success toast and invalidates the list cache automatically!
       navigate("/app/journals");
     } catch (error) {
       console.error("Error deleting journal entry:", error);
@@ -73,18 +130,24 @@ function JournalDetailPage() {
       const content = editorRef.current?.getJSON();
       if (!content) return toast.error("Editor content missing");
 
+      // ✅ FIX: Saving selection customizations down to backend server database
       await updateJournalMutation.mutateAsync({
         journalId,
-        data: { title, content },
+        data: {
+          title,
+          content,
+          styleSettings: {
+            themePreset: selectedTheme,
+            layoutWidth: layoutWidth,
+          },
+        },
       });
 
       clearJournalDraft(journalId);
       toast.success("Journal saved successfully ✨");
       setIsEditing(false);
 
-      setTimeout(() => {
-        navigate("/app/journals");
-      }, 1200);
+      // Removed your navigate out timeout so you stay right on the detail page to view it!
     } catch (error) {
       toast.error("Failed to save journal");
     }
@@ -107,30 +170,95 @@ function JournalDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <PageHeader
-        title="Your Reflection"
-        description="Revisit thoughts, emotions, and moments."
-      />
-
+    <div
+      className={`w-full min-h-screen transition-all duration-700 rounded-[32px] p-1`}
+    >
       <div
-        className="
-          rounded-[32px]
-          border
-          border-white/10
-          bg-gradient-to-b
-          from-white/[0.06]
-          to-white/[0.03]
-          p-8
-          shadow-[0_0_60px_rgba(0,0,0,0.25)]
-          backdrop-blur-xl
-        "
+        className={`mx-auto ${layoutWidth} space-y-8 p-4 sm:p-6 transition-all duration-500 ${currentStyle.textStyle}`}
       >
-        <div className="flex flex-col gap-8">
-          {/* Top Section */}
-          <div className="space-y-5">
+        <PageHeader
+          title="Your Reflection"
+          description="Revisit thoughts, emotions, and moments."
+        />
+
+        {/* Customization Drawer / Control Dock */}
+        {isEditing && (
+          <div className="border border-white/10 bg-black/50 p-5 rounded-2xl flex flex-wrap gap-6 items-center backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-300">
+            {/* Theme Preset Selector */}
+            <div className="space-y-1.5">
+              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider block">
+                Visual Theme Preset
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {JOURNAL_THEMES &&
+                  Object.entries(JOURNAL_THEMES).map(([key, value]) => (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedTheme(key)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-xl border transition-all duration-200 ${
+                        selectedTheme === key
+                          ? "bg-white text-slate-950 border-white shadow-lg"
+                          : "bg-white/5 text-slate-300 border-white/10 hover:bg-white/10"
+                      }`}
+                    >
+                      {value.name}
+                    </button>
+                  ))}
+              </div>
+            </div>
+
+            {/* Canvas Width Options Selector */}
+            <div className="space-y-1.5">
+              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider block">
+                Layout Canvas Width
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: "max-w-3xl", label: "Focused & Cozy" },
+                  { key: "max-w-5xl", label: "Standard Balanced" },
+                  { key: "max-w-7xl", label: "Expansive View" },
+                ].map((width) => (
+                  <button
+                    key={width.key}
+                    onClick={() => setLayoutWidth(width.key)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-xl border transition-all duration-200 ${
+                      layoutWidth === width.key
+                        ? "bg-white text-slate-950 border-white shadow-lg"
+                        : "bg-white/5 text-slate-300 border-white/10 hover:bg-white/10"
+                    }`}
+                  >
+                    {width.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Main Canvas Container Block */}
+        <div
+          className={`
+            rounded-[32px]
+            border
+            p-8
+            shadow-[0_0_60px_rgba(0,0,0,0.35)]
+            backdrop-blur-xl
+            transition-all
+            duration-500
+            relative
+            overflow-hidden
+            ${currentStyle.editorCanvas}
+          `}
+        >
+          {/* Subtle Ambient Glow Background Layers */}
+          <div
+            className={`absolute inset-0 pointer-events-none bg-gradient-to-br transition-opacity duration-700 ${currentStyle.accentGlow}`}
+          />
+
+          <div className="relative z-10 flex flex-col gap-8">
+            {/* Top Section Actions Row */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
-              {/* Left Column: Mood Badge & Title Input */}
+              {/* Left Column: Mood Badge & Interactive Title Input */}
               <div className="space-y-4 flex-1 w-full">
                 <div
                   className="
@@ -156,29 +284,19 @@ function JournalDetailPage() {
                   <Input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="text-3xl font-bold bg-white/5 border-white/10 text-white w-full"
+                    className="text-3xl font-bold bg-white/5 border-white/10 text-white w-full h-auto py-2 px-3 rounded-xl"
                   />
                 ) : (
-                  <h1
-                    className="
-                      max-w-3xl
-                      text-4xl
-                      font-bold
-                      leading-tight
-                      tracking-tight
-                      text-white
-                    "
-                  >
+                  <h1 className="max-w-3xl text-4xl font-bold leading-tight tracking-tight text-white">
                     {title || "Untitled Entry"}
                   </h1>
                 )}
               </div>
 
-              {/* Right Column: Dynamic Action Buttons (Top Right Alignment) */}
+              {/* Right Column: Unified Top Right Control Actions */}
               <div className="flex items-center gap-3 shrink-0 self-end sm:self-start">
                 {!isEditing ? (
                   <>
-                    {/* Secondary Styled Delete Button */}
                     <button
                       onClick={handleDelete}
                       disabled={deleteJournalMutation.isPending}
@@ -249,20 +367,20 @@ function JournalDetailPage() {
               </div>
             </div>
 
-            {/* Meta Info */}
+            {/* Entry Metadata Row */}
             <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400">
               <span className="rounded-full bg-white/[0.04] px-3 py-1">
                 {new Date(journal.createdAt).toLocaleDateString()}
               </span>
               <span className="rounded-full bg-white/[0.04] px-3 py-1">
-                {journal.wordCount} words
+                {journal.wordCount || 0} words
               </span>
-              <span className="rounded-full bg-white/[0.04] px-3 py-1">
-                {journal.category}
+              <span className="rounded-full bg-white/[0.04] px-3 py-1 capitalize">
+                {journal.category || "General"}
               </span>
             </div>
 
-            {/* Tags */}
+            {/* Tag Badges */}
             {journal.tags?.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {journal.tags.map((tag) => (
@@ -287,12 +405,14 @@ function JournalDetailPage() {
             )}
           </div>
 
-          {/* Editor */}
-          <JournalEditor
-            ref={editorRef}
-            initialContent={initialEditorContent}
-            editable={isEditing}
-          />
+          {/* Text Editor Canvas Interface */}
+          <div className="mt-8 relative z-10">
+            <JournalEditor
+              ref={editorRef}
+              initialContent={initialEditorContent}
+              editable={isEditing}
+            />
+          </div>
         </div>
       </div>
     </div>
