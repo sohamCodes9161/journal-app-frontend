@@ -16,7 +16,6 @@ import ProtectedRoutes from "./ProtectedRoutes";
 import PublicOnlyRoutes from "./PublicOnlyRoutes";
 import SettingsPage from "@/pages/SettingsPage";
 
-import CreateTodoPage from "@/features/todos/pages/CreateTodoPage";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -64,10 +63,6 @@ const router = createBrowserRouter([
           {
             path: "todos",
             element: <TodosPage />,
-          },
-          {
-            path: "todos/new",
-            element: <CreateTodoPage />,
           },
           {
             path: "analytics",
