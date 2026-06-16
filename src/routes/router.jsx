@@ -5,7 +5,7 @@ import HomePage from "@/pages/HomePage";
 import DashboardPage from "@/pages/DashboardPage";
 import JournalPage from "@/pages/JournalPage";
 import TodosPage from "@/features/todos/pages/TodosPage";
-import AnalyticsPage from "@/pages/AnalyticsPage";
+
 import JournalFeedPage from "@/features/journal/pages/JournalFeedPage";
 import LoginPage from "@/features/auth/pages/LoginPage";
 import RegisterPage from "@/features/auth/pages/RegisterPage";
@@ -15,7 +15,7 @@ import CreateJournalPage from "@/features/journal/pages/CreateJournalPage";
 import ProtectedRoutes from "./ProtectedRoutes";
 import PublicOnlyRoutes from "./PublicOnlyRoutes";
 import SettingsPage from "@/pages/SettingsPage";
-
+import { AnalyticsPage } from "@/features/analytics/pages/AnalyticsPage";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -79,6 +79,10 @@ const router = createBrowserRouter([
           {
             path: "settings",
             element: <SettingsPage />,
+          },
+          {
+            path: "analytics",
+            element: <AnalyticsPage />,
           },
         ],
       },

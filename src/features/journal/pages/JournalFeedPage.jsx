@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom"; // 🌟 Added useSearchParams
 import PageHeader from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui";
 import JournalCard from "../components/JournalCard";
@@ -8,6 +8,10 @@ import JournalFilters from "../components/JournalFilters";
 import JournalPagination from "../components/JournalPagination";
 
 function JournalFeedPage() {
+  // 🌟 Read URL search parameters (e.g., ?date=2026-06-15)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const dateParam = searchParams.get("date") || "";
+
   // 1. Unified Control States for dynamic Lazy Filtering
   const [filters, setFilters] = useState({
     search: "",
@@ -26,13 +30,17 @@ function JournalFeedPage() {
     return () => clearTimeout(handler);
   }, [filters]);
 
-  // Reset pagination to page 1 whenever search settings are actively changed
+  // 🌟 Reset pagination to page 1 whenever filters OR incoming URL dates change
+  useEffect(() => {
+    setPage(1);
+  }, [dateParam]);
+
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
     setPage(1);
   };
 
-  // 3. Connect everything directly into your current hook logic
+  // 3. Connect everything directly into your hook logic (Now forwarding the dateParam)
   const { data, isLoading, isError } = useJournals({
     page,
     limit: 10,
@@ -40,6 +48,7 @@ function JournalFeedPage() {
     mood: debouncedFilters.mood,
     startDate: debouncedFilters.startDate,
     endDate: debouncedFilters.endDate,
+    date: dateParam, // 🌟 Passing the selected analytics date to the hook parameter pool
   });
 
   // Loading State UI Match
@@ -72,18 +81,39 @@ function JournalFeedPage() {
     );
   }
 
-  // Check if user has filters applied currently
-  const hasActiveFilters = Object.values(filters).some((val) => val !== "");
+  // Check if user has filters applied currently (Including checking the URL date pill)
+  const hasActiveFilters =
+    Object.values(filters).some((val) => val !== "") || !!dateParam;
   const hasNoResults = !data || !data.journals || data.journals.length === 0;
 
   return (
     <div className="space-y-6">
       {/* Top Header Row with Action Redirection Button Insertion */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-white/5 pb-5">
-        <PageHeader
-          title="Your Journals"
-          description="Moments, reflections, and thoughts captured over time."
-        />
+        <div className="flex flex-col gap-2">
+          <PageHeader
+            title="Your Journals"
+            description="Moments, reflections, and thoughts captured over time."
+          />
+
+          {/* 🌟 Active Analytics Filtering Badge Layer */}
+          {dateParam && (
+            <div className="flex items-center gap-2 self-start rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-xs text-violet-300 backdrop-blur-sm animate-in fade-in duration-200">
+              <span className="font-mono">Showing Day: {dateParam}</span>
+              <button
+                onClick={() => {
+                  // Strips the date parameter from the browser URL address block entirely
+                  searchParams.delete("date");
+                  setSearchParams(searchParams);
+                }}
+                className="ml-1 font-bold text-violet-400 hover:text-violet-200 transition-colors cursor-pointer"
+                title="Clear day filter"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Global Floating Action Element Trigger */}
         <Link to="/app/journals/new" className="w-full sm:w-auto">
