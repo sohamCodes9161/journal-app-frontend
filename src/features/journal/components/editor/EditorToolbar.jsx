@@ -1,3 +1,4 @@
+// src/features/journal/components/editor/EditorToolbar.jsx
 import {
   Bold,
   Italic,
@@ -15,22 +16,13 @@ import {
 import { useRef, useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { CUSTOM_EMOJIS, EMOJI_CATEGORIES } from "../../utils/customEmojis";
-
+import { useJournalTheme } from "../../context/JournalThemeContext";
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
-const FONT_SIZES = [
-  { label: "Small (12px)", value: "12px" },
-  { label: "Normal (14px)", value: "14px" },
-  { label: "Medium (16px)", value: "16px" },
-  { label: "Large (18px)", value: "18px" },
-  { label: "X-Large (24px)", value: "24px" },
-  { label: "Heading (32px)", value: "32px" },
-];
-
-function ToolbarButton({ onClick, isActive, title, children }) {
+// ── ToolbarButton now accepts theme and uses it for active/hover states ──
+function ToolbarButton({ onClick, isActive, title, children, theme }) {
   return (
     <button
       type="button"
@@ -38,11 +30,11 @@ function ToolbarButton({ onClick, isActive, title, children }) {
       onClick={onClick}
       title={title}
       className={`
-        w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-200
+        w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200
         ${
           isActive
-            ? "bg-violet-500 text-white shadow-md shadow-violet-500/20 scale-95"
-            : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+            ? `${theme.uiBtnActive} shadow-sm scale-95`
+            : `${theme.uiBtnHover}`
         }
       `}
     >
@@ -51,28 +43,22 @@ function ToolbarButton({ onClick, isActive, title, children }) {
   );
 }
 
-function ToolbarDivider() {
-  return <div className="w-px h-5 bg-white/10 self-center mx-1 select-none" />;
+// ── ToolbarDivider now uses theme border color ──
+function ToolbarDivider({ theme }) {
+  return (
+    <div
+      className={`w-px h-4 self-center mx-1 select-none ${theme.uiDivider}`}
+    />
+  );
 }
 
-/**
- * EditorToolbar
- *
- * Props:
- *  - editor          : TipTap editor instance
- *  - pendingFilesRef : React ref holding a Map<blobUrl, File>
- *                      Populated here when user picks a file.
- *                      Consumed by the save handler in the parent page.
- */
-function EditorToolbar({ editor, pendingFilesRef }) {
+export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
   const fileInputRef = useRef(null);
-
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeCategory, setActiveCategory] = useState("faces");
   const pickerRef = useRef(null);
   const scrollContainerRef = useRef(null);
 
-  // Force re-render on every editor transaction so toolbar highlights stay in sync
   const [, setTick] = useState(0);
   useEffect(() => {
     if (!editor) return;
@@ -81,7 +67,6 @@ function EditorToolbar({ editor, pendingFilesRef }) {
     return () => editor.off("transaction", forceRerender);
   }, [editor]);
 
-  // Close emoji picker when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (pickerRef.current && !pickerRef.current.contains(event.target)) {
@@ -95,8 +80,6 @@ function EditorToolbar({ editor, pendingFilesRef }) {
   }, [showEmojiPicker]);
 
   if (!editor) return null;
-
-  // ─── Emoji helpers ────────────────────────────────────────────────────────
 
   const handleTabClick = (categoryId) => {
     setActiveCategory(categoryId);
@@ -131,58 +114,27 @@ function EditorToolbar({ editor, pendingFilesRef }) {
       .run();
   };
 
-  // ─── Font size helpers ────────────────────────────────────────────────────
-
-  const getCurrentFontSize = () => {
-    for (const sizeOption of FONT_SIZES) {
-      if (editor.isActive("fontSize", { size: sizeOption.value })) {
-        return sizeOption.value;
-      }
-    }
-    return "14px";
-  };
-
-  const handleFontSizeChange = (value) => {
-    if (value === "clear") {
-      editor.chain().focus().unsetFontSize().run();
-    } else {
-      editor.chain().focus().setFontSize(value).run();
-    }
-  };
-
-  // ─── Image pick → local blob preview (NO Cloudinary call here) ───────────
-
-  function handleImageButtonClick() {
-    fileInputRef.current?.click();
-  }
-
   function handleFileChange(event) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate type
     if (!ALLOWED_TYPES.includes(file.type)) {
       toast.error("Only JPEG, PNG, GIF, and WebP files are allowed.");
       event.target.value = "";
       return;
     }
 
-    // Validate size
     if (file.size > MAX_FILE_SIZE_BYTES) {
       toast.error(`File too large. Maximum size is ${MAX_FILE_SIZE_MB}MB.`);
       event.target.value = "";
       return;
     }
 
-    // Create a local object URL for instant preview — no upload yet
     const blobUrl = URL.createObjectURL(file);
-
-    // Store the File in the pending map so the save handler can upload it later
     if (pendingFilesRef?.current) {
       pendingFilesRef.current.set(blobUrl, file);
     }
 
-    // Insert into editor using the blob URL — renders instantly
     editor
       .chain()
       .focus()
@@ -191,66 +143,31 @@ function EditorToolbar({ editor, pendingFilesRef }) {
       .focus()
       .run();
 
-    // Clear the input so the same file can be picked again if needed
     event.target.value = "";
   }
 
-  // ─── Render ───────────────────────────────────────────────────────────────
-
   return (
-    <div className="flex items-center justify-between gap-4 flex-wrap">
-      {/* Main toolbar strip */}
+    <div className="flex items-center justify-between gap-4 flex-wrap w-full">
+      {/* Structural format actions — wrapper now themed */}
       <div
-        className="
-          sticky top-4 z-10 flex items-center gap-1 rounded-2xl border border-white/10
-          bg-slate-950/40 p-1.5 backdrop-blur-xl w-max max-w-full overflow-x-auto scrollbar-none
-        "
+        className={`flex items-center gap-0.5 rounded-xl border p-1 backdrop-blur-md w-max max-w-full overflow-x-auto scrollbar-none transition-colors duration-500 ${theme.uiClass}`}
       >
         <ToolbarButton
           onClick={() => editor.chain().focus().undo().run()}
           title="Undo"
+          theme={theme}
         >
-          <Undo size={16} />
+          <Undo size={15} />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().redo().run()}
           title="Redo"
+          theme={theme}
         >
-          <Redo size={16} />
+          <Redo size={15} />
         </ToolbarButton>
 
-        <ToolbarDivider />
-
-        {/* Font size selector */}
-        <div className="relative flex items-center px-1">
-          <select
-            value={getCurrentFontSize()}
-            onChange={(e) => handleFontSizeChange(e.target.value)}
-            className="bg-white/5 border border-white/10 text-slate-200 text-xs rounded-xl px-2.5 py-1.5 pr-6 outline-none appearance-none cursor-pointer hover:bg-white/10 transition font-medium focus:border-violet-500"
-            title="Text Font Size"
-          >
-            {FONT_SIZES.map((size) => (
-              <option
-                key={size.value}
-                value={size.value}
-                className="bg-slate-900 text-slate-200"
-              >
-                {size.label}
-              </option>
-            ))}
-            <option
-              value="clear"
-              className="bg-slate-900 text-violet-400 font-semibold"
-            >
-              ✨ Reset Size
-            </option>
-          </select>
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[9px]">
-            ▼
-          </div>
-        </div>
-
-        <ToolbarDivider />
+        <ToolbarDivider theme={theme} />
 
         <ToolbarButton
           onClick={() =>
@@ -258,8 +175,9 @@ function EditorToolbar({ editor, pendingFilesRef }) {
           }
           isActive={editor.isActive("heading", { level: 1 })}
           title="Heading 1"
+          theme={theme}
         >
-          <Heading1 size={16} />
+          <Heading1 size={15} />
         </ToolbarButton>
         <ToolbarButton
           onClick={() =>
@@ -267,8 +185,9 @@ function EditorToolbar({ editor, pendingFilesRef }) {
           }
           isActive={editor.isActive("heading", { level: 2 })}
           title="Heading 2"
+          theme={theme}
         >
-          <Heading2 size={16} />
+          <Heading2 size={15} />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().setParagraph().run()}
@@ -276,71 +195,74 @@ function EditorToolbar({ editor, pendingFilesRef }) {
             editor.isActive("paragraph") && !editor.isActive("fontSize")
           }
           title="Normal Text"
+          theme={theme}
         >
-          <Type size={16} />
+          <Type size={15} />
         </ToolbarButton>
 
-        <ToolbarDivider />
+        <ToolbarDivider theme={theme} />
 
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           isActive={editor.isActive("bold")}
           title="Bold"
+          theme={theme}
         >
-          <Bold size={16} />
+          <Bold size={15} />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleItalic().run()}
           isActive={editor.isActive("italic")}
           title="Italic"
+          theme={theme}
         >
-          <Italic size={16} />
+          <Italic size={15} />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           isActive={editor.isActive("underline")}
           title="Underline"
+          theme={theme}
         >
-          <Underline size={16} />
+          <Underline size={15} />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHighlight().run()}
           isActive={editor.isActive("highlight")}
           title="Highlight"
+          theme={theme}
         >
-          <Highlighter size={16} />
+          <Highlighter size={15} />
         </ToolbarButton>
 
-        <ToolbarDivider />
+        <ToolbarDivider theme={theme} />
 
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           isActive={editor.isActive("bulletList")}
           title="Bullet List"
+          theme={theme}
         >
-          <List size={16} />
+          <List size={15} />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           isActive={editor.isActive("orderedList")}
           title="Numbered List"
+          theme={theme}
         >
-          <ListOrdered size={16} />
+          <ListOrdered size={15} />
         </ToolbarButton>
 
-        <ToolbarDivider />
+        <ToolbarDivider theme={theme} />
 
-        {/* Image button — triggers local blob preview only */}
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={handleImageButtonClick}
+        <ToolbarButton
+          onClick={() => fileInputRef.current?.click()}
           title="Insert Image or GIF"
-          className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all duration-200"
+          theme={theme}
         >
-          <ImageIcon size={16} />
-        </button>
-
+          <ImageIcon size={15} />
+        </ToolbarButton>
         <input
           ref={fileInputRef}
           type="file"
@@ -350,33 +272,34 @@ function EditorToolbar({ editor, pendingFilesRef }) {
         />
       </div>
 
-      {/* Emoji picker */}
+      {/* Emoji picker — button themed, dropdown stays dark (always dark overlay) */}
       <div className="relative" ref={pickerRef}>
         <button
           type="button"
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          className={`px-4 h-9 flex items-center gap-2 rounded-xl text-sm font-medium transition-all duration-200 border border-white/10 ${
+          className={`px-3 h-8 flex items-center gap-1.5 rounded-xl text-xs font-medium transition-all border ${
             showEmojiPicker
-              ? "bg-violet-600 text-white border-violet-500 shadow-lg shadow-violet-600/20"
-              : "bg-white/5 text-slate-300 hover:bg-white/10"
+              ? "bg-violet-600 text-white shadow-md shadow-violet-600/10 border-violet-600"
+              : `${theme.uiClass}`
           }`}
         >
           <span>🥰</span>
-          <span className="text-xs">Emojis</span>
+          <span>Emojis</span>
         </button>
 
+        {/* Emoji dropdown stays dark — it's a floating overlay, dark works universally */}
         {showEmojiPicker && (
-          <div className="absolute right-0 top-full mt-3 z-50 w-80 p-4 rounded-2xl border border-white/10 bg-slate-950/95 backdrop-blur-2xl shadow-2xl flex flex-col gap-3 animate-in fade-in slide-in-from-top-3 duration-200 text-white">
-            <div className="flex gap-1 border-b border-white/5 pb-2 overflow-x-auto scrollbar-none">
+          <div className="absolute right-0 top-full mt-2 z-50 w-72 p-3 rounded-2xl border border-white/10 bg-slate-950/95 backdrop-blur-2xl shadow-2xl flex flex-col gap-2 text-white">
+            <div className="flex gap-1 border-b border-white/5 pb-1.5 overflow-x-auto scrollbar-none">
               {EMOJI_CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
                   type="button"
                   onClick={() => handleTabClick(cat.id)}
-                  className={`px-2.5 py-1 text-[11px] font-bold rounded-md whitespace-nowrap transition-all duration-200 ${
+                  className={`px-2 py-0.5 text-[10px] font-bold rounded-md whitespace-nowrap transition-all ${
                     activeCategory === cat.id
-                      ? "bg-violet-500 text-white shadow"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                      ? "bg-violet-500 text-white"
+                      : "text-slate-400 hover:bg-white/5"
                   }`}
                 >
                   {cat.label}
@@ -387,7 +310,7 @@ function EditorToolbar({ editor, pendingFilesRef }) {
             <div
               ref={scrollContainerRef}
               onScroll={handleScroll}
-              className="flex flex-col gap-4 max-h-64 overflow-y-auto pr-1 scroll-smooth"
+              className="flex flex-col gap-3 max-h-48 overflow-y-auto pr-1 scroll-smooth"
               style={{ scrollbarWidth: "thin" }}
             >
               {EMOJI_CATEGORIES.map((category) => {
@@ -395,27 +318,23 @@ function EditorToolbar({ editor, pendingFilesRef }) {
                   (e) => e.category === category.id
                 );
                 return (
-                  <div
-                    key={category.id}
-                    id={`emoji-section-${category.id}`}
-                    className="pt-1"
-                  >
-                    <div className="text-[10px] uppercase tracking-wider font-extrabold text-violet-400 mb-2 sticky top-0 bg-slate-950/90 py-1 backdrop-blur-sm">
+                  <div key={category.id} id={`emoji-section-${category.id}`}>
+                    <div className="text-[9px] uppercase tracking-wider font-extrabold text-violet-400 mb-1 bg-slate-950/90 py-0.5 sticky top-0">
                       {category.label}
                     </div>
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-4 gap-1.5">
                       {emojisInSection.map((emoji) => (
                         <button
                           key={emoji.name}
                           type="button"
                           onClick={() => handleSelectEmoji(emoji)}
-                          className="p-1.5 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/10 hover:border-white/20 active:scale-90 transition-all duration-150 flex items-center justify-center group"
+                          className="p-1 rounded-lg bg-white/[0.01] border border-white/5 hover:bg-white/10 active:scale-90 transition-all flex items-center justify-center"
                           title={emoji.name}
                         >
                           <img
                             src={emoji.url}
                             alt={emoji.name}
-                            className="w-9 h-9 object-contain pointer-events-none group-hover:scale-110 transition-transform duration-200"
+                            className="w-7 h-7 object-contain pointer-events-none"
                           />
                         </button>
                       ))}
@@ -424,15 +343,9 @@ function EditorToolbar({ editor, pendingFilesRef }) {
                 );
               })}
             </div>
-
-            <div className="text-[10px] text-center text-slate-500 border-t border-white/5 pt-2 select-none">
-              Scroll freely across categories
-            </div>
           </div>
         )}
       </div>
     </div>
   );
 }
-
-export default EditorToolbar;

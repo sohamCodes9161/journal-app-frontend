@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
@@ -6,40 +6,39 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
-import TiptapCharacterCount from "@tiptap/extension-character-count"; // ✅ Fixed: Points to correct package now
+import TiptapCharacterCount from "@tiptap/extension-character-count";
 import { Mark } from "@tiptap/core";
 import EditorToolbar from "./EditorToolbar";
 import { InlineEmoji } from "./extensions/InlineEmoji";
 import { ExtendedImage } from "../../utils/ExtendedImage";
 import { useTodos } from "@/features/todos/hooks/useTodos";
-// ─── Reflection Panel Companion ─────────────────────────────────────────────
-import { useState } from "react";
 
+// ─── Theme Extensions ────────────────────────────────────────────────────────
+import ThemeSelector from "./ThemeSelector";
+import { getThemeConfig } from "../../utils/journalThemes";
+
+// ─── Reflection Panel Companion ─────────────────────────────────────────────
 function JournalReflectionHelper({ onInsertMention }) {
   const { data: separatedTodos, isLoading } = useTodos();
   const fulfilledItems = separatedTodos?.completedToday || [];
 
-  // 1. Local states to manage user control and item evaporation
   const [isOpen, setIsOpen] = useState(false);
   const [usedTodoIds, setUsedTodoIds] = useState(new Set());
 
-  // Filter out any intentions the user has already clicked and talked about
   const visibleItems = fulfilledItems.filter(
     (item) => !usedTodoIds.has(item._id)
   );
 
-  // If loading, or there's nothing done today, or they used everything -> absolute zero footprint
   if (isLoading || visibleItems.length === 0) return null;
 
   return (
-    <div className="w-full transition-all duration-500 ease-in-out">
-      {/* Dynamic Trigger Toggle Badge */}
+    <div className="w-full transition-all duration-500 ease-in-out z-10 relative">
       {!isOpen ? (
         <div className="flex justify-start px-1">
           <button
             type="button"
             onClick={() => setIsOpen(true)}
-            className="group flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-violet-300 bg-white/[0.02] border border-white/5 hover:border-violet-500/20 px-3 py-1.5 rounded-xl transition-all duration-300 shadow-sm"
+            className="group flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-violet-300 bg-slate-900/40 border border-white/5 hover:border-violet-500/20 px-3 py-1.5 rounded-xl transition-all duration-300 shadow-sm"
           >
             <span className="inline-block animate-pulse text-violet-400 group-hover:scale-110 transition-transform">
               ✨
@@ -51,8 +50,7 @@ function JournalReflectionHelper({ onInsertMention }) {
           </button>
         </div>
       ) : (
-        /* The Expanded Focused Drawer */
-        <div className="rounded-2xl border border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent p-4 backdrop-blur-md space-y-3 animate-fade-in relative overflow-hidden">
+        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 backdrop-blur-md space-y-3 animate-fade-in relative overflow-hidden">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm">🧠</span>
@@ -60,8 +58,6 @@ function JournalReflectionHelper({ onInsertMention }) {
                 Focal Points to Anchor Your Reflection
               </h4>
             </div>
-
-            {/* Smooth collapse toggle button */}
             <button
               type="button"
               onClick={() => setIsOpen(false)}
@@ -82,9 +78,7 @@ function JournalReflectionHelper({ onInsertMention }) {
                 key={item._id}
                 type="button"
                 onClick={() => {
-                  // Fire Tiptap macro insertion
                   onInsertMention?.(item.title);
-                  // Trigger evaporation sequence logic
                   setUsedTodoIds((prev) => new Set([...prev, item._id]));
                 }}
                 className="text-xs px-3 py-1.5 rounded-xl border border-white/10 bg-white/[0.02] text-slate-300 hover:border-violet-500/40 hover:bg-violet-500/10 hover:text-violet-200 transition-all duration-300 transform active:scale-95 text-left max-w-xs truncate"
@@ -102,7 +96,6 @@ function JournalReflectionHelper({ onInsertMention }) {
 // ─── FontSize mark extension ─────────────────────────────────────────────────
 const FontSize = Mark.create({
   name: "fontSize",
-
   addAttributes() {
     return {
       size: {
@@ -115,22 +108,18 @@ const FontSize = Mark.create({
       },
     };
   },
-
   parseHTML() {
     return [{ tag: "span[style*='font-size']" }];
   },
-
   renderHTML({ HTMLAttributes }) {
     return ["span", HTMLAttributes, 0];
   },
-
   addCommands() {
     return {
       setFontSize:
         (size) =>
         ({ chain }) =>
           chain().setMark(this.name, { size }).run(),
-
       unsetFontSize:
         () =>
         ({ chain }) =>
@@ -139,12 +128,23 @@ const FontSize = Mark.create({
   },
 });
 
-// ─── JournalEditor ────────────────────────────────────────────────────────────
+// ─── JournalEditor Component ──────────────────────────────────────────────────
 const JournalEditor = forwardRef(
-  ({ initialContent, editable = true, onChange, pendingFilesRef }, ref) => {
+  (
+    {
+      initialContent,
+      editable = true,
+      onChange,
+      onThemeChange,
+      themePreset = "parchment",
+      pendingFilesRef,
+    },
+    ref
+  ) => {
+    const activeTheme = getThemeConfig(themePreset);
+
     const editor = useEditor({
       immediatelyRender: false,
-
       extensions: [
         StarterKit.configure({
           history: true,
@@ -163,24 +163,19 @@ const JournalEditor = forwardRef(
         ExtendedImage,
         InlineEmoji,
       ],
-
       content: initialContent,
       editable,
       autofocus: false,
-
       onUpdate: ({ editor }) => {
         if (onChange) onChange(editor.getJSON());
       },
-
       editorProps: {
         attributes: {
-          class:
-            "w-full min-w-full block min-h-[350px] rounded-2xl border border-white/5 bg-white/[0.01] px-5 py-4 text-slate-200 outline-none transition-all duration-200 focus:border-violet-500/20 prose prose-invert max-w-none overflow-y-auto text-sm",
+          class: `w-full min-w-full block min-h-[400px] px-2 py-1 outline-none transition-colors duration-500 prose max-w-none overflow-y-auto text-sm text-current`,
         },
       },
     });
 
-    // Frictionless injection command loop to insert the item cleanly right at cursor position
     const handleInsertMention = (title) => {
       if (!editor) return;
       editor
@@ -190,10 +185,8 @@ const JournalEditor = forwardRef(
         .run();
     };
 
-    // Sync content when initialContent changes (e.g. journal loads from API)
     useEffect(() => {
       if (!editor || !initialContent) return;
-
       const currentContentStr = JSON.stringify(editor.getJSON());
       const incomingContentStr =
         typeof initialContent === "string"
@@ -205,10 +198,8 @@ const JournalEditor = forwardRef(
       }
     }, [editor, initialContent]);
 
-    // Expose the editor instance to the parent via ref
     useImperativeHandle(ref, () => editor, [editor]);
 
-    // Sync editable flag
     useEffect(() => {
       if (!editor) return;
       editor.setEditable(editable);
@@ -218,17 +209,42 @@ const JournalEditor = forwardRef(
 
     return (
       <div className="space-y-4 w-full max-w-4xl mx-auto block">
-        {/* Toolbar */}
+        {/* Top Management Controls Deck — now uses theme-aware border and muted colors */}
+        <div
+          className={`flex items-center justify-between gap-4 border-b pb-2 transition-colors duration-500 ${activeTheme.borderClass}`}
+        >
+          {editable && (
+            <ThemeSelector
+              currentThemeId={themePreset}
+              onThemeChange={onThemeChange}
+              // ── NEW: pass theme so ThemeSelector can style itself ──
+              theme={activeTheme}
+            />
+          )}
+          {/* Character count — now reads correctly on all backgrounds */}
+          <div
+            className={`text-[11px] font-mono tracking-tight transition-colors duration-500 ${activeTheme.mutedClass}`}
+          >
+            {editor.storage.characterCount.characters()} chars
+          </div>
+        </div>
+
+        {/* Toolbar — receives active theme so buttons adapt to light/dark canvas */}
         {editable && (
-          <EditorToolbar editor={editor} pendingFilesRef={pendingFilesRef} />
+          <EditorToolbar
+            editor={editor}
+            pendingFilesRef={pendingFilesRef}
+            // ── NEW: theme prop ──
+            theme={activeTheme}
+          />
         )}
 
-        {/* NEW ENHANCEMENT: The Reflection Bridge rendered beautifully right here */}
+        {/* Context Prompt Anchor — unchanged, always dark panel */}
         {editable && (
           <JournalReflectionHelper onInsertMention={handleInsertMention} />
         )}
 
-        {/* BubbleMenu for image alignment + size controls */}
+        {/* Bubble Menu context selection overlay — unchanged */}
         {editable && (
           <BubbleMenu
             editor={editor}
@@ -275,9 +291,7 @@ const JournalEditor = forwardRef(
               >
                 Right
               </button>
-
               <div className="w-px h-3.5 bg-white/10 mx-1" />
-
               <button
                 type="button"
                 onClick={() =>
@@ -317,9 +331,7 @@ const JournalEditor = forwardRef(
               >
                 L
               </button>
-
               <div className="w-px h-3.5 bg-white/10 mx-1" />
-
               <button
                 type="button"
                 onClick={() => editor.chain().focus().deleteSelection().run()}
@@ -332,15 +344,11 @@ const JournalEditor = forwardRef(
           </BubbleMenu>
         )}
 
-        {/* Text Area Canvas Wrapper */}
-        <div className="w-full block rounded-2xl border border-white/10 bg-slate-950/10 backdrop-blur-xl p-1">
+        {/* 🎨 Canvas Body */}
+        <div
+          className={`w-full block min-h-[400px] transition-all duration-500 rounded-xl p-2 ${activeTheme.textClass}`}
+        >
           <EditorContent editor={editor} className="w-full block" />
-        </div>
-
-        {/* Footer info tracking panel */}
-        <div className="flex items-center justify-between px-1 text-[11px] text-slate-500 select-none">
-          <p>{editable ? "Personal Sanctuary Open" : "Archived Thought"}</p>
-          <p>{editor.storage.characterCount.characters()} characters</p>
         </div>
       </div>
     );
