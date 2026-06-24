@@ -1,7 +1,8 @@
+// src/features/journal/pages/JournalDetailPage.jsx
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Button, Input, PageHeader } from "@/components/ui";
+import { Button, PageHeader } from "@/components/ui";
 import JournalEditor from "../components/editor/JournalEditor";
 import useJournal from "../hooks/useJournal";
 import useUpdateJournal from "../hooks/useUpdateJournal";
@@ -12,7 +13,7 @@ import {
   clearJournalDraft,
 } from "../utils/journalDraftStorage";
 import { JOURNAL_THEMES } from "../utils/journalThemes";
-
+import { JournalThemeProvider } from "../context/JournalThemeContext";
 function JournalDetailPage() {
   const navigate = useNavigate();
   const { journalId } = useParams();
@@ -25,80 +26,41 @@ function JournalDetailPage() {
   const [title, setTitle] = useState("");
   const [initialEditorContent, setInitialEditorContent] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-
-  // Local Customization States
-  const [selectedTheme, setSelectedTheme] = useState("cosmic-dark");
-  const [layoutWidth, setLayoutWidth] = useState("max-w-5xl");
+  const [selectedTheme, setSelectedTheme] = useState("parchment");
 
   useEffect(() => {
     if (!journal) return;
 
-    // Load theme configuration from database if it exists
     if (journal.styleSettings?.themePreset) {
-      setSelectedTheme(journal.styleSettings.themePreset);
+      const legacyMap = {
+        "cosmic-dark": "midnight",
+        "midnight-neon": "midnight",
+        "minimal-matte": "parchment",
+        "warm-parchment": "parchment",
+        "floral-sanctuary": "blush_pink",
+      };
+      const parsedTheme =
+        legacyMap[journal.styleSettings.themePreset] ||
+        journal.styleSettings.themePreset;
+      setSelectedTheme(parsedTheme);
     } else if (
       ["sad", "reflective", "anxious"].includes(journal.mood?.toLowerCase())
     ) {
-      setSelectedTheme("cosmic-dark");
+      setSelectedTheme("midnight");
     } else if (
-      ["happy", "grateful", "peaceful"].includes(journal.mood?.toLowerCase())
+      ["happy", "grateful", "peaceful", "excited"].includes(
+        journal.mood?.toLowerCase()
+      )
     ) {
-      setSelectedTheme("floral-sanctuary");
+      setSelectedTheme("blush_pink");
     } else {
-      setSelectedTheme("minimal-matte");
-    }
-
-    if (journal.styleSettings?.layoutWidth) {
-      setLayoutWidth(journal.styleSettings.layoutWidth);
+      setSelectedTheme("parchment");
     }
   }, [journal]);
 
-  // ✅ SAFEFALL BACK FIX: Added deep nested chaining protection to completely avoid the 'pageBg' crash
-  const currentStyle = JOURNAL_THEMES?.[selectedTheme] ||
-    JOURNAL_THEMES?.["minimal-matte"] || {
-      pageBg: "bg-slate-950",
-      textStyle: "text-slate-200",
-      editorCanvas: "bg-slate-900/50 border-white/10",
-      accentGlow: "opacity-0",
-    };
-
-  // 🌍 GLOBAL BACKGROUND FORCE INJECTOR: This maps the flowers/images to the outer body wrapper frame
-  useEffect(() => {
-    if (!currentStyle?.pageBg) return;
-
-    // Keep track of whatever setup the app layout had before
-    const originalBodyClasses = document.body.className;
-
-    // Inject our image parameters directly into the DOM window root
-    document.body.classList.add(...currentStyle.pageBg.split(" "));
-
-    // Cleanup: Reset body wrapper back to system styles when navigating away
-    return () => {
-      currentStyle.pageBg.split(" ").forEach((className) => {
-        document.body.classList.remove(className);
-      });
-      if (originalBodyClasses) {
-        document.body.className = originalBodyClasses;
-      }
-    };
-  }, [currentStyle]);
-
-  const handleDelete = async () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this journal permanently?"
-      )
-    )
-      return;
-
-    try {
-      await deleteJournalMutation.mutateAsync(journalId);
-      navigate("/app/journals");
-    } catch (error) {
-      console.error("Error deleting journal entry:", error);
-      toast.error("Failed to delete journal entry.");
-    }
-  };
+  // ── Derive full theme config from selectedTheme ──
+  const themeConfig =
+    JOURNAL_THEMES.find((t) => t.id === selectedTheme) || JOURNAL_THEMES[0];
 
   useEffect(() => {
     if (!journal) return;
@@ -125,20 +87,48 @@ function JournalDetailPage() {
     return () => clearTimeout(timeout);
   }, [title, isEditing, journalId]);
 
+  const handleDelete = async () => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this journal permanently?"
+      )
+    )
+      return;
+
+    try {
+      await deleteJournalMutation.mutateAsync(journalId);
+      toast.success("Entry removed completely");
+      navigate("/app/journals");
+    } catch (error) {
+      console.error("Error deleting journal entry:", error);
+      toast.error("Failed to delete journal entry.");
+    }
+  };
+
   async function handleSave() {
     try {
       const content = editorRef.current?.getJSON();
       if (!content) return toast.error("Editor content missing");
 
-      // ✅ FIX: Saving selection customizations down to backend server database
+      const backendThemeMap = {
+        parchment: "warm-parchment",
+        midnight: "midnight-neon",
+        blush_pink: "floral-sanctuary",
+        sky_breeze: "sky-breeze",
+        mint_sage: "mint-sage",
+        lavender_haze: "lavender-haze",
+        mist_gray: "mist-gray",
+      };
+
+      const themeToSend = backendThemeMap[selectedTheme] || "warm-parchment";
+
       await updateJournalMutation.mutateAsync({
         journalId,
         data: {
           title,
           content,
           styleSettings: {
-            themePreset: selectedTheme,
-            layoutWidth: layoutWidth,
+            themePreset: themeToSend,
           },
         },
       });
@@ -146,8 +136,6 @@ function JournalDetailPage() {
       clearJournalDraft(journalId);
       toast.success("Journal saved successfully ✨");
       setIsEditing(false);
-
-      // Removed your navigate out timeout so you stay right on the detail page to view it!
     } catch (error) {
       toast.error("Failed to save journal");
     }
@@ -156,7 +144,9 @@ function JournalDetailPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <p className="text-slate-400">Loading journal...</p>
+        <p className="text-slate-400 animate-pulse text-xs font-mono">
+          Loading journal...
+        </p>
       </div>
     );
   }
@@ -164,258 +154,127 @@ function JournalDetailPage() {
   if (isError || !journal) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <p className="text-red-400">Journal not found.</p>
+        <p className="text-rose-400 font-medium text-sm">
+          Journal entry could not be found.
+        </p>
       </div>
     );
   }
 
   return (
-    <div
-      className={`w-full min-h-screen transition-all duration-700 rounded-[32px] p-1`}
-    >
+    // Outer page background changes with theme
+    <JournalThemeProvider themePreset={selectedTheme}>
       <div
-        className={`mx-auto ${layoutWidth} space-y-8 p-4 sm:p-6 transition-all duration-500 ${currentStyle.textStyle}`}
+        className={`min-h-screen w-full transition-colors duration-500 px-4 py-6 selection:bg-violet-500/20 ${themeConfig.bgClass}`}
       >
-        <PageHeader
-          title="Your Reflection"
-          description="Revisit thoughts, emotions, and moments."
-        />
-
-        {/* Customization Drawer / Control Dock */}
-        {isEditing && (
-          <div className="border border-white/10 bg-black/50 p-5 rounded-2xl flex flex-wrap gap-6 items-center backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-300">
-            {/* Theme Preset Selector */}
-            <div className="space-y-1.5">
-              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider block">
-                Visual Theme Preset
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {JOURNAL_THEMES &&
-                  Object.entries(JOURNAL_THEMES).map(([key, value]) => (
-                    <button
-                      key={key}
-                      onClick={() => setSelectedTheme(key)}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-xl border transition-all duration-200 ${
-                        selectedTheme === key
-                          ? "bg-white text-slate-950 border-white shadow-lg"
-                          : "bg-white/5 text-slate-300 border-white/10 hover:bg-white/10"
-                      }`}
-                    >
-                      {value.name}
-                    </button>
-                  ))}
-              </div>
-            </div>
-
-            {/* Canvas Width Options Selector */}
-            <div className="space-y-1.5">
-              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider block">
-                Layout Canvas Width
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { key: "max-w-3xl", label: "Focused & Cozy" },
-                  { key: "max-w-5xl", label: "Standard Balanced" },
-                  { key: "max-w-7xl", label: "Expansive View" },
-                ].map((width) => (
-                  <button
-                    key={width.key}
-                    onClick={() => setLayoutWidth(width.key)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-xl border transition-all duration-200 ${
-                      layoutWidth === width.key
-                        ? "bg-white text-slate-950 border-white shadow-lg"
-                        : "bg-white/5 text-slate-300 border-white/10 hover:bg-white/10"
-                    }`}
-                  >
-                    {width.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Main Canvas Container Block */}
-        <div
-          className={`
-            rounded-[32px]
-            border
-            p-8
-            shadow-[0_0_60px_rgba(0,0,0,0.35)]
-            backdrop-blur-xl
-            transition-all
-            duration-500
-            relative
-            overflow-hidden
-            ${currentStyle.editorCanvas}
-          `}
-        >
-          {/* Subtle Ambient Glow Background Layers */}
-          <div
-            className={`absolute inset-0 pointer-events-none bg-gradient-to-br transition-opacity duration-700 ${currentStyle.accentGlow}`}
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Page header — text color adapts to theme */}
+          <PageHeader
+            title="Your Reflection"
+            description="Revisit thoughts, emotions, and moments."
+            className={`pb-2 transition-colors duration-500 ${themeConfig.textClass}`}
           />
 
-          <div className="relative z-10 flex flex-col gap-8">
-            {/* Top Section Actions Row */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
-              {/* Left Column: Mood Badge & Interactive Title Input */}
+          {/* Dynamic border tint */}
+          <div
+            className={`w-full block transition-colors duration-500 border-b pb-6 ${themeConfig.borderClass}`}
+          >
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="space-y-4 flex-1 w-full">
+                {/* Mood badge — adapts to light vs dark theme */}
                 <div
-                  className="
-                    inline-flex
-                    items-center
-                    rounded-full
-                    border
-                    border-white/10
-                    bg-white/[0.05]
-                    px-4
-                    py-1.5
-                    text-sm
-                    font-medium
-                    text-slate-300
-                    backdrop-blur-sm
-                    capitalize
-                  "
+                  className={`inline-flex items-center rounded-xl border px-3 py-1.5 text-xs font-bold tracking-wide uppercase shadow-sm backdrop-blur-md select-none transition-colors duration-500 ${
+                    themeConfig.isDark
+                      ? "border-white/10 bg-white/5 text-slate-200"
+                      : `${themeConfig.borderClass} bg-black/5 ${themeConfig.textClass}`
+                  }`}
                 >
+                  <span className={`mr-1.5 ${themeConfig.mutedClass}`}>
+                    Mood:
+                  </span>
                   {journal.mood || "neutral"}
                 </div>
 
                 {isEditing ? (
-                  <Input
+                  // Title input — adapts to theme
+                  <input
+                    type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="text-3xl font-bold bg-white/5 border-white/10 text-white w-full h-auto py-2 px-3 rounded-xl"
+                    className={`w-full bg-transparent text-2xl font-bold tracking-tight outline-none border-b pb-1 transition-colors duration-500 ${themeConfig.borderClass} ${themeConfig.textClass}`}
+                    placeholder="Entry title..."
                   />
                 ) : (
-                  <h1 className="max-w-3xl text-4xl font-bold leading-tight tracking-tight text-white">
-                    {title || "Untitled Entry"}
+                  // Title display — adapts to theme
+                  <h1
+                    className={`text-2xl font-bold tracking-tight transition-colors duration-500 ${themeConfig.textClass}`}
+                  >
+                    {title}
                   </h1>
                 )}
               </div>
 
-              {/* Right Column: Unified Top Right Control Actions */}
-              <div className="flex items-center gap-3 shrink-0 self-end sm:self-start">
-                {!isEditing ? (
+              {/* Action buttons — always violet/red so they stay visible on any background */}
+              <div className="flex items-center gap-2 shrink-0">
+                {isEditing ? (
                   <>
-                    <button
-                      onClick={handleDelete}
-                      disabled={deleteJournalMutation.isPending}
-                      className="
-                        flex 
-                        items-center 
-                        gap-2 
-                        px-4 
-                        py-2.5 
-                        rounded-xl 
-                        bg-rose-500/10 
-                        border 
-                        border-rose-500/20 
-                        text-rose-400 
-                        text-sm
-                        font-medium
-                        transition-all 
-                        duration-200 
-                        hover:bg-rose-500 
-                        hover:text-white 
-                        disabled:opacity-50
-                      "
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsEditing(false)}
+                      className={`text-xs transition-colors duration-500 ${themeConfig.mutedClass} hover:opacity-80`}
                     >
-                      {deleteJournalMutation.isPending ? (
-                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      ) : (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth="2"
-                          stroke="currentColor"
-                          className="w-4 h-4"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                          />
-                        </svg>
-                      )}
-                      {deleteJournalMutation.isPending
-                        ? "Deleting..."
-                        : "Delete"}
-                    </button>
-
-                    <Button onClick={() => setIsEditing(true)}>
-                      Edit Journal
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleSave}
+                      disabled={updateJournalMutation.isPending}
+                      className="text-xs bg-violet-600 hover:bg-violet-700 text-white"
+                    >
+                      {updateJournalMutation.isPending ? "Saving..." : "Save"}
                     </Button>
                   </>
                 ) : (
                   <>
                     <Button
-                      onClick={handleSave}
-                      isLoading={updateJournalMutation.isPending}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsEditing(true)}
+                      className={`text-xs transition-colors duration-500 ${themeConfig.mutedClass} hover:opacity-80`}
                     >
-                      Save Changes
+                      Edit
                     </Button>
-
                     <Button
-                      variant="secondary"
-                      onClick={() => setIsEditing(false)}
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleDelete}
+                      disabled={deleteJournalMutation.isPending}
+                      className="text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
                     >
-                      Cancel
+                      {deleteJournalMutation.isPending
+                        ? "Deleting..."
+                        : "Delete"}
                     </Button>
                   </>
                 )}
               </div>
             </div>
-
-            {/* Entry Metadata Row */}
-            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400">
-              <span className="rounded-full bg-white/[0.04] px-3 py-1">
-                {new Date(journal.createdAt).toLocaleDateString()}
-              </span>
-              <span className="rounded-full bg-white/[0.04] px-3 py-1">
-                {journal.wordCount || 0} words
-              </span>
-              <span className="rounded-full bg-white/[0.04] px-3 py-1 capitalize">
-                {journal.category || "General"}
-              </span>
-            </div>
-
-            {/* Tag Badges */}
-            {journal.tags?.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {journal.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="
-                      rounded-full
-                      border
-                      border-violet-500/20
-                      bg-violet-500/10
-                      px-3
-                      py-1
-                      text-xs
-                      font-medium
-                      text-violet-200
-                    "
-                  >
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
 
-          {/* Text Editor Canvas Interface */}
-          <div className="mt-8 relative z-10">
-            <JournalEditor
-              ref={editorRef}
-              initialContent={initialEditorContent}
-              editable={isEditing}
-            />
-          </div>
+          {/* Editor — receives theme so its toolbar and chrome adapt too */}
+          <JournalEditor
+            ref={editorRef}
+            initialContent={initialEditorContent}
+            editable={isEditing}
+            onChange={() => {}}
+            onThemeChange={(newThemeId) => setSelectedTheme(newThemeId)}
+            themePreset={selectedTheme}
+            pendingFilesRef={undefined}
+          />
         </div>
       </div>
-    </div>
+    </JournalThemeProvider>
   );
 }
 
