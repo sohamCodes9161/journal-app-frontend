@@ -1,3 +1,35 @@
+/* Update this inside your global/editor CSS stylesheet */
+
+:root {
+  /* Dynamic Architecture Variables (Default Baseline Dark Mode) */
+  --atmosphere-bg: #121115;
+  --atmosphere-gradient-top: #172554; /* Your classic dark navy */
+  --atmosphere-text: #e2dfe5;
+  --atmosphere-text-muted: #94a3b8;
+  --atmosphere-border: rgba(255, 255, 255, 0.08);
+  --atmosphere-surface: rgba(255, 255, 255, 0.02);
+  --atmosphere-surface-hover: rgba(255, 255, 255, 0.08);
+  --atmosphere-scrollbar: rgba(255, 255, 255, 0.12);
+  --atmosphere-scrollbar-hover: rgba(255, 255, 255, 0.2);
+  --color-scheme: dark;
+}
+
+[data-atmosphere="warm-parchment"] {
+  /* Warm Cream Adaptation Layer */
+  --atmosphere-bg: #fff8ee;
+  --atmosphere-gradient-top: #f4ead4; /* Soft warm cream gradient node */
+  --atmosphere-text: #2a231d;
+  --atmosphere-text-muted: rgba(42, 35, 29, 0.6);
+  --atmosphere-border: #eadfcb;
+  --atmosphere-surface: #f4ebdd;
+  --atmosphere-surface-hover: rgba(42, 35, 29, 0.06);
+  --atmosphere-scrollbar: rgba(42, 35, 29, 0.15);
+  --atmosphere-scrollbar-hover: rgba(42, 35, 29, 0.25);
+  --color-scheme: light;
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+
 * {
   box-sizing: border-box;
 }
@@ -11,19 +43,63 @@ body,
 
 body {
   margin: 0;
-
-  background: radial-gradient(circle at top, #172554, var(--background));
-
-  color: var(--text-primary);
-
+  /* Fixed: The top gradient node now transforms with your current theme selection! */
+  background: radial-gradient(
+    circle at top,
+    var(--atmosphere-gradient-top),
+    var(--atmosphere-bg)
+  );
+  color: var(--atmosphere-text);
   font-family: Inter, system-ui, sans-serif;
-
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  transition:
+    background 0.5s ease,
+    color 0.5s ease;
+  color-scheme: var(--color-scheme);
 }
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
+}
+
+/* Tiptap Image Layer Adaptations */
+.tiptap img {
+  width: 100%;
+  max-width: 700px;
+  max-height: 600px;
+  height: auto;
+  display: block;
+  margin: 2rem auto;
+  border-radius: 1.5rem;
+  object-fit: cover;
+  /* Fixed: Dynamic local adaptive borders */
+  border: 1px solid var(--atmosphere-border);
+  overflow: hidden;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease,
+    border-color 0.5s ease;
+}
+
+/* Adaptive Webkit Scrollbar Controls */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--atmosphere-scrollbar);
+  border-radius: 999px;
+  transition: background-color 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--atmosphere-scrollbar-hover);
 }
