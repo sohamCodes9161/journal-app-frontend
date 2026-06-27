@@ -322,5 +322,3 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
       </div>
     </div>
   );
-        }
-            
