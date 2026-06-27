@@ -145,7 +145,6 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
 
   return (
     <div className="flex flex-row items-center justify-between gap-3 w-full">
-      {/* Horizontal Scroll Ribbon on Mobile */}
       <div className="flex items-center gap-0.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1 w-full sm:w-auto overflow-x-auto scrollbar-none snap-x touch-pan-x">
         <ToolbarButton
           onClick={() => editor.chain().focus().undo().run()}
@@ -249,7 +248,6 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
         />
       </div>
 
-      {/* Emoji picker element */}
       <div className="relative shrink-0" ref={pickerRef}>
         <button
           type="button"
@@ -324,94 +322,5 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
       </div>
     </div>
   );
-}
-          {category.label}
-                    </div>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {emojisInSection.map((emoji) => (
-                        <button
-                          key={emoji.name}
-                          type="button"
-                          onClick={() => handleSelectEmoji(emoji)}
-                          className="p-1 rounded-lg bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10 active:scale-90 transition-all flex items-center justify-center"
-                          title={emoji.name}
-                        >
-                          <img
-                            src={emoji.url}
-                            alt={emoji.name}
-                            className="w-7 h-7 object-contain pointer-events-none"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-bg-white dark:bg-slate-950 py-0.5 sticky top-0">
-                      {category.label}
-                    </div>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {emojisInSection.map((emoji) => (
-                        <button
-                          key={emoji.name}
-                          type="button"
-                          onClick={() => handleSelectEmoji(emoji)}
-                          className="p-1 rounded-lg bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10 active:scale-90 transition-all flex items-center justify-center"
-                          title={emoji.name}
-                        >
-                          <img
-                            src={emoji.url}
-                            alt={emoji.name}
-                            className="w-7 h-7 object-contain pointer-events-none"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-                 <div key={category.id} id={`emoji-section-${category.id}`}>
-                    <div className="text-[9px] uppercase tracking-wider font-extrabold text-violet-400 mb-1 bg-slate-950/90 py-0.5 sticky top-0">
-                      {category.label}
-                    </div>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {emojisInSection.map((emoji) => (
-                        <button
-                          key={emoji.name}
-                          type="button"
-                          onClick={() => handleSelectEmoji(emoji)}
-                          className="p-1 rounded-lg bg-white/[0.01] border border-white/5 hover:bg-white/10 active:scale-90 transition-all flex items-center justify-center"
-                          title={emoji.name}
-                        >
-                          <img
-                            src={emoji.url}
-                            alt={emoji.name}
-                            className="w-7 h-7 object-contain pointer-events-none"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+        }
+            
