@@ -325,6 +325,35 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
     </div>
   );
 }
+          {category.label}
+                    </div>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {emojisInSection.map((emoji) => (
+                        <button
+                          key={emoji.name}
+                          type="button"
+                          onClick={() => handleSelectEmoji(emoji)}
+                          className="p-1 rounded-lg bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10 active:scale-90 transition-all flex items-center justify-center"
+                          title={emoji.name}
+                        >
+                          <img
+                            src={emoji.url}
+                            alt={emoji.name}
+                            className="w-7 h-7 object-contain pointer-events-none"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 bg-white dark:bg-slate-950 py-0.5 sticky top-0">
                       {category.label}
                     </div>
