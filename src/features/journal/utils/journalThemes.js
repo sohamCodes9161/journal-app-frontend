@@ -2,7 +2,7 @@
 
 export const JOURNAL_THEMES = [
   {
-    id: "parchment",
+    id: "warm-parchment",
     name: "Warm Cream",
     bgClass: "bg-[#FFF8EE]",
     textClass:
@@ -19,7 +19,7 @@ export const JOURNAL_THEMES = [
   },
 
   {
-    id: "blush_pink",
+    id: "sakura-dusk",
     name: "Blush Pink",
     bgClass: "bg-[#FFF0F5]",
     textClass:
@@ -36,7 +36,7 @@ export const JOURNAL_THEMES = [
   },
 
   {
-    id: "sky_breeze",
+    id: "sky-breeze",
     name: "Sky Blue",
     bgClass: "bg-[#EEF8FF]",
     textClass:
@@ -70,7 +70,7 @@ export const JOURNAL_THEMES = [
   },
 
   {
-    id: "peach_glow",
+    id: "desert-sandstone",
     name: "Peach Glow",
     bgClass: "bg-[#FFF4EC]",
     textClass:
@@ -104,7 +104,7 @@ export const JOURNAL_THEMES = [
   },
 
   {
-    id: "aqua_breeze",
+    id: "ocean-serenity",
     name: "Aqua Breeze",
     bgClass: "bg-[#F0FCFC]",
     textClass:

@@ -19,14 +19,15 @@ const MOODS = [
 ];
 
 export default function CreateJournalPage() {
+  const navigate = useNavigate();
+  const dropdownRef = useRef(null);
+  const editorRef = useRef(null);
+
   const [title, setTitle] = useState("");
   const [feeling, setFeeling] = useState("neutral");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [editorContent, setEditorContent] = useState(null);
-  const [currentThemeId, setCurrentThemeId] = useState("parchment");
+  const [currentThemeId, setCurrentThemeId] = useState("warm-parchment");
 
-  const dropdownRef = useRef(null);
-  const navigate = useNavigate();
   const { mutateAsync: createJournal, isPending } = useCreateJournal();
 
   const activeMoodObj = MOODS.find((m) => m.key === feeling) || MOODS[2];
@@ -42,22 +43,20 @@ export default function CreateJournalPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleMoodSelect = (moodKey) => {
-    setFeeling(moodKey);
-    setIsDropdownOpen(false);
-  };
-
   const handleSave = async () => {
     if (!title.trim()) {
-      toast.error("Please provide an entry title.");
-      return;
+      return toast.error("Please provide an entry title.");
     }
 
+    const editorContent = editorRef.current?.getJSON();
+
     const payload = {
-      title: title,
+      title: title.trim(),
       mood: feeling,
-      content: editorContent,
-      theme: currentThemeId,
+      content: editorContent || null,
+      styleSettings: {
+        themePreset: currentThemeId, // Sent directly without lookup maps
+      },
     };
 
     try {
@@ -65,65 +64,63 @@ export default function CreateJournalPage() {
       toast.success("Journal entry saved beautifully!");
       navigate("/app/journals");
     } catch (error) {
-      console.error("Error saving entry:", error);
+      console.error(
+        "Error encountered during entry creation mutation operation:",
+        error
+      );
       toast.error("Failed to save entry. Please try again.");
     }
   };
 
   return (
-    /* 🎨 Background tint updates perfectly across the whole viewport wrapper */
     <div
       className={`min-h-screen w-full transition-colors duration-500 px-4 py-6 selection:bg-violet-500/20 ${themeConfig.bgClass}`}
     >
       <div className="max-w-4xl mx-auto mb-4">
-        {/* Header Row Divider matches theme accents */}
         <div
           className={`flex items-center justify-between gap-4 border-b pb-2 transition-colors duration-500 ${themeConfig.borderClass}`}
         >
-          {/* 🎨 Title Input: Completely isolated theme typography container */}
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Untitled Thought..."
-            className={`w-full bg-transparent text-xl font-bold outline-none transition-colors duration-500 ${themeConfig.textClass}`}
+            className={`w-full bg-transparent text-xl font-bold outline-none transition-colors duration-500 placeholder-current/30 focus:ring-0 ${themeConfig.textClass}`}
           />
 
-          {/* Mood Selector Trigger: Protected from canvas typography styles */}
           <div className="relative" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className={`w-9 h-9 flex items-center justify-center rounded-xl border text-lg bg-black/[0.03] hover:bg-black/[0.08] transition-all duration-300 ${themeConfig.borderClass}`}
+              className={`w-9 h-9 flex items-center justify-center rounded-xl border text-lg bg-black/[0.03] dark:bg-white/[0.05] hover:bg-black/[0.08] transition-all duration-300 ${themeConfig.borderClass}`}
             >
               {activeMoodObj.emoji}
             </button>
 
-            {/* Dropdown UI: Explicitly styled dark slate container so text/buttons never glitch out */}
             {isDropdownOpen && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-slate-950/95 backdrop-blur-xl border border-white/10 rounded-2xl p-3 shadow-2xl z-50 animate-in fade-in slide-in-from-top-1 duration-150 text-white">
+              <div className="absolute right-0 top-full mt-2 w-56 bg-slate-950/95 backdrop-blur-xl border border-white/10 rounded-2xl p-3 shadow-2xl z-50 text-white animate-in fade-in slide-in-from-top-1 duration-150">
                 <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase block mb-2 select-none">
                   How are you feeling today?
                 </span>
 
                 <div className="grid grid-cols-5 gap-1">
-                  {MOODS.map((mood) => {
-                    const isCurrent = feeling === mood.key;
-                    return (
-                      <button
-                        key={mood.key}
-                        type="button"
-                        onClick={() => handleMoodSelect(mood.key)}
-                        className={`w-9 h-9 flex items-center justify-center rounded-lg text-base transition-colors ${
-                          isCurrent
-                            ? "bg-violet-600 text-white shadow-md shadow-violet-600/20"
-                            : "hover:bg-white/5 text-slate-300"
-                        }`}
-                      >
-                        {mood.emoji}
-                      </button>
-                    );
-                  })}
+                  {MOODS.map((mood) => (
+                    <button
+                      key={mood.key}
+                      type="button"
+                      onClick={() => {
+                        setFeeling(mood.key);
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`w-9 h-9 flex items-center justify-center rounded-lg text-base transition-colors ${
+                        feeling === mood.key
+                          ? "bg-violet-600 text-white shadow-md shadow-violet-600/20"
+                          : "hover:bg-white/5 text-slate-300"
+                      }`}
+                    >
+                      {mood.emoji}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
@@ -131,15 +128,14 @@ export default function CreateJournalPage() {
         </div>
       </div>
 
-      {/* Editor Engine Interface */}
       <JournalEditor
+        ref={editorRef}
         editable={true}
         themePreset={currentThemeId}
         onThemeChange={(newThemeId) => setCurrentThemeId(newThemeId)}
-        onChange={setEditorContent}
+        initialContent={null}
       />
 
-      {/* Submit Action Block */}
       <div className="max-w-4xl mx-auto mt-6 flex justify-end">
         <button
           onClick={handleSave}
