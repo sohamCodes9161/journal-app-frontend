@@ -45,9 +45,7 @@ function ToolbarButton({ onClick, isActive, title, children }) {
 
 function ToolbarDivider() {
   return (
-    <div
-      className="w-px h-4 self-center mx-1 select-none bg-slate-200 dark:bg-slate-800 shrink-0"
-    />
+    <div className="w-px h-4 self-center mx-1 select-none bg-slate-200 dark:bg-slate-800 shrink-0" />
   );
 }
 
@@ -164,14 +162,18 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
         <ToolbarDivider />
 
         <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 1 }).run()
+          }
           isActive={editor.isActive("heading", { level: 1 })}
           title="Heading 1"
         >
           <Heading1 size={15} />
         </ToolbarButton>
         <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 2 }).run()
+          }
           isActive={editor.isActive("heading", { level: 2 })}
           title="Heading 2"
         >
@@ -179,7 +181,9 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().setParagraph().run()}
-          isActive={editor.isActive("paragraph") && !editor.isActive("fontSize")}
+          isActive={
+            editor.isActive("paragraph") && !editor.isActive("fontSize")
+          }
           title="Normal Text"
         >
           <Type size={15} />
@@ -324,3 +328,4 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
       </div>
     </div>
   );
+}
