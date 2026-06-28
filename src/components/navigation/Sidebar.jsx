@@ -1,32 +1,64 @@
+import { useState } from "react";
 import { navigationLinks } from "./navigationLinks";
-
 import NavLinkItem from "./NavLinkItem";
 
 function Sidebar() {
+  // State to manage whether the sidebar is compressed or expanded
+  const [isCollapsed, setIsCollapsed] = useState(true);
+
   return (
     <aside
-      className="
+      className={`
         hidden
-        w-72
         flex-col
         border-r
         border-white/10
-        bg-white/5
-        p-4
+        bg-slate-950/40
         backdrop-blur-xl
+        transition-all duration-300 ease-in-out
         lg:flex
-      "
+        ${isCollapsed ? "w-20 items-center" : "w-64 px-4"}
+        py-6
+      `}
     >
-      <div className="mb-8 px-2">
-        <h2 className="text-xl font-bold">Journal App</h2>
+      {/* Header & Toggle Button */}
+      <div
+        className={`mb-8 flex w-full items-center ${isCollapsed ? "justify-center" : "justify-between px-2"}`}
+      >
+        {!isCollapsed && (
+          <div className="overflow-hidden whitespace-nowrap">
+            <h2 className="text-xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+              Journal App
+            </h2>
+            <p className="mt-1 text-[10px] uppercase tracking-wider text-slate-400">
+              Your calm space
+            </p>
+          </div>
+        )}
 
-        <p className="mt-1 text-sm text-slate-400">Your calm digital space</p>
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 transition-colors border border-white/5"
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isCollapsed ? "➡️" : "⬅️"}
+        </button>
       </div>
 
-      <nav className="flex flex-col gap-2">
+      {/* Navigation Links */}
+      <nav className="flex w-full flex-col gap-3">
         {navigationLinks.map((link) => (
           <NavLinkItem key={link.path} to={link.path}>
-            {link.label}
+            <div
+              className={`flex items-center ${isCollapsed ? "justify-center w-full" : "gap-3"}`}
+            >
+              <span className="text-xl drop-shadow-md">{link.icon}</span>
+              {!isCollapsed && (
+                <span className="font-medium tracking-wide whitespace-nowrap">
+                  {link.label}
+                </span>
+              )}
+            </div>
           </NavLinkItem>
         ))}
       </nav>
