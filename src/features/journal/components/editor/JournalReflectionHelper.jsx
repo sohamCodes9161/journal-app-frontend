@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useTodos } from "@/features/todos/hooks/useTodos";
 
-export default function JournalReflectionHelper({ onInsertMention }) {
+export default function JournalReflectionHelper({ onInsertMention, theme }) {
   const { data: separatedTodos, isLoading } = useTodos();
   const fulfilledItems = separatedTodos?.completedToday || [];
 
@@ -18,38 +18,73 @@ export default function JournalReflectionHelper({ onInsertMention }) {
   return (
     <div className="w-full transition-all duration-500 ease-in-out z-10 relative">
       {!isOpen ? (
+        /* ── Collapsed trigger button ── */
         <div className="flex justify-start px-1">
           <button
             type="button"
             onClick={() => setIsOpen(true)}
-            className="group flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-violet-300 bg-slate-900/40 border border-white/5 hover:border-violet-500/20 px-3 py-1.5 rounded-xl transition-all duration-300 shadow-sm"
+            className={`
+              group flex items-center gap-2
+              text-xs font-medium
+              border px-3 py-1.5 rounded-xl
+              transition-all duration-300 shadow-sm
+              ${theme?.uiClass || "bg-slate-900/40 border-white/5 text-slate-400"}
+              ${theme?.uiBtnHover || "hover:opacity-80"}
+            `}
           >
             <span className="inline-block animate-pulse text-violet-400 group-hover:scale-110 transition-transform">
               ✨
             </span>
             Reflect on today's achievements?
-            <span className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded-md text-slate-500 group-hover:text-violet-200 transition-colors">
+            <span
+              className={`
+                text-[10px] px-1.5 py-0.5 rounded-md transition-colors
+                ${theme?.isDark ? "bg-white/5" : "bg-black/5"}
+                ${theme?.mutedClass || "text-slate-500"}
+              `}
+            >
               {visibleItems.length} available
             </span>
           </button>
         </div>
       ) : (
-        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 backdrop-blur-md space-y-3 animate-fade-in relative overflow-hidden">
+        /* ── Expanded panel ── */
+        <div
+          className={`
+            rounded-2xl border p-4
+            space-y-3 relative overflow-hidden
+            transition-colors duration-500
+            ${theme?.uiClass || "border-white/5 bg-slate-900/40"}
+          `}
+        >
+          {/* Panel header row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm">🧠</span>
-              <h4 className="text-xs font-semibold tracking-wider uppercase text-violet-400/90">
+              <h4
+                className={`text-xs font-semibold tracking-wider uppercase ${
+                  theme?.isDark ? "text-violet-400" : "text-violet-600"
+                }`}
+              >
                 Focal Points to Anchor Your Reflection
               </h4>
             </div>
+
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="text-[10px] uppercase font-bold text-slate-500 hover:text-white bg-white/5 hover:bg-white/10 px-2 py-1 rounded-md transition-all"
+              className={`
+                text-[10px] uppercase font-bold
+                px-2 py-1 rounded-md transition-all
+                ${theme?.mutedClass || "text-slate-500"}
+                ${theme?.uiBtnHover || "hover:opacity-80"}
+              `}
             >
-              Hide Canvas Clutter ✕
+              Hide ✕
             </button>
           </div>
+
+          {/* Todo item chips */}
           <div className="flex flex-wrap gap-1.5 pt-1 max-h-32 overflow-y-auto">
             {visibleItems.map((item) => (
               <button
@@ -59,7 +94,13 @@ export default function JournalReflectionHelper({ onInsertMention }) {
                   onInsertMention?.(item.title);
                   setUsedTodoIds((prev) => new Set([...prev, item._id]));
                 }}
-                className="text-xs px-3 py-1.5 rounded-xl border border-white/10 bg-white/[0.02] text-slate-300 hover:border-violet-500/40 hover:bg-violet-500/10 hover:text-violet-200 transition-all duration-300 transform active:scale-95 text-left max-w-xs truncate"
+                className={`
+                  text-xs px-3 py-1.5 rounded-xl border
+                  transition-all duration-300 transform active:scale-95
+                  text-left max-w-xs truncate
+                  ${theme?.borderClass || "border-white/10"}
+                  ${theme?.uiBtnHover || "hover:opacity-80"}
+                `}
               >
                 ✦ {item.title}
               </button>

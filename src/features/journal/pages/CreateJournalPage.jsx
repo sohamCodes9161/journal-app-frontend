@@ -74,7 +74,7 @@ export default function CreateJournalPage() {
 
   return (
     <div
-      className={`min-h-screen w-full transition-colors duration-500 px-4 py-6 selection:bg-violet-500/20 ${themeConfig.bgClass}`}
+      className={`min-h-screen w-full transition-colors duration-500 px-4 py-6 selection:bg-violet-500/20 ${themeConfig.bgClass} ${themeConfig.textClass}`}
     >
       <div className="max-w-4xl mx-auto mb-4">
         <div

@@ -39,11 +39,10 @@ export default function JournalDetailPage() {
     setInitialEditorContent(existingDraft?.content || journal.content || null);
 
     if (journal.styleSettings?.themePreset) {
-      // Normalizes old legacy themes if they still exist in your database records
       const legacyMap = {
         parchment: "warm-parchment",
-        midnight: "midnight-neon",
-        "cosmic-dark": "midnight-neon",
+        midnight: "midnight", // FIXED: was midnight-neon
+        "cosmic-dark": "midnight", // FIXED: was midnight-neon
         blush_pink: "sakura-dusk",
         peach_glow: "desert-sandstone",
         aqua_breeze: "ocean-serenity",
@@ -56,11 +55,11 @@ export default function JournalDetailPage() {
     } else {
       const normalization = journal.mood?.toLowerCase() || "";
       if (["sad", "reflective", "anxious"].includes(normalization)) {
-        setSelectedTheme("midnight-neon");
+        setSelectedTheme("midnight"); // FIXED
       } else if (
         ["happy", "grateful", "peaceful", "excited"].includes(normalization)
       ) {
-        setSelectedTheme("floral-sanctuary");
+        setSelectedTheme("sakura-dusk"); // FIXED: floral-sanctuary didn't exist
       } else {
         setSelectedTheme("warm-parchment");
       }
@@ -158,7 +157,7 @@ export default function JournalDetailPage() {
   return (
     <JournalThemeProvider themePreset={selectedTheme}>
       <div
-        className={`min-h-screen w-full transition-colors duration-500 px-4 py-6 selection:bg-violet-500/20 ${themeConfig.bgClass}`}
+        className={`min-h-screen w-full transition-colors duration-500 px-4 py-6 selection:bg-violet-500/20 ${themeConfig.bgClass} ${themeConfig.textClass}`}
       >
         <div className="max-w-4xl mx-auto space-y-6">
           <PageHeader
@@ -249,14 +248,20 @@ export default function JournalDetailPage() {
             </div>
           </div>
 
-          <JournalEditor
-            ref={editorRef}
-            initialContent={initialEditorContent}
-            editable={isEditing}
-            onChange={() => {}}
-            onThemeChange={(newThemeId) => setSelectedTheme(newThemeId)}
-            themePreset={selectedTheme}
-          />
+          <div
+            className={`rounded-xl overflow-hidden ${themeConfig.bgClass} border ${themeConfig.borderClass}`}
+          >
+            <JournalEditor
+              ref={editorRef}
+              initialContent={initialEditorContent}
+              editable={isEditing}
+              onChange={() => {}}
+              onThemeChange={(newThemeId) => setSelectedTheme(newThemeId)}
+              themePreset={selectedTheme}
+              // ADD THIS: Force the editor to strictly follow the theme's background
+              className={`bg-transparent ${themeConfig.textClass}`}
+            />
+          </div>
         </div>
       </div>
     </JournalThemeProvider>

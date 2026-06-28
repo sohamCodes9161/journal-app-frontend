@@ -1,4 +1,4 @@
-// Force fresh deployment update 1
+// Force fresh deployment update 2
 
 import {
   Bold,
@@ -22,7 +22,9 @@ const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
-function ToolbarButton({ onClick, isActive, title, children }) {
+// ── Internal sub-components receive theme so they style themselves correctly ──
+
+function ToolbarButton({ onClick, isActive, title, children, theme }) {
   return (
     <button
       type="button"
@@ -33,8 +35,12 @@ function ToolbarButton({ onClick, isActive, title, children }) {
         w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg transition-all duration-200 shrink-0 snap-center
         ${
           isActive
-            ? "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-400 font-bold shadow-sm scale-95"
-            : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            ? `${
+                theme?.isDark
+                  ? "bg-violet-500/20 text-violet-400"
+                  : "bg-violet-100 text-violet-700"
+              } font-bold shadow-sm scale-95`
+            : theme?.uiBtnHover || "text-slate-600 hover:bg-slate-100"
         }
       `}
     >
@@ -43,13 +49,19 @@ function ToolbarButton({ onClick, isActive, title, children }) {
   );
 }
 
-function ToolbarDivider() {
+function ToolbarDivider({ theme }) {
   return (
-    <div className="w-px h-4 self-center mx-1 select-none bg-slate-200 dark:bg-slate-800 shrink-0" />
+    <div
+      className={`w-px h-4 self-center mx-1 select-none shrink-0 transition-colors duration-500 ${
+        theme?.uiDivider || "bg-slate-200"
+      }`}
+    />
   );
 }
 
-export default function EditorToolbar({ editor, pendingFilesRef }) {
+// ── Main exported component ───────────────────────────────────────────────────
+
+export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
   const fileInputRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeCategory, setActiveCategory] = useState("faces");
@@ -145,21 +157,32 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
 
   return (
     <div className="flex flex-row items-center justify-between gap-3 w-full">
-      <div className="flex items-center gap-0.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1 w-full sm:w-auto overflow-x-auto scrollbar-none snap-x touch-pan-x">
+      {/* ── Formatting button strip ── */}
+      <div
+        className={`
+          flex items-center gap-0.5 border rounded-xl p-1
+          w-full sm:w-auto
+          overflow-x-auto scrollbar-none snap-x touch-pan-x
+          transition-colors duration-500
+          ${theme?.uiClass || "bg-slate-50 border-slate-200 text-slate-700"}
+        `}
+      >
         <ToolbarButton
           onClick={() => editor.chain().focus().undo().run()}
           title="Undo"
+          theme={theme}
         >
           <Undo size={15} />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().redo().run()}
           title="Redo"
+          theme={theme}
         >
           <Redo size={15} />
         </ToolbarButton>
 
-        <ToolbarDivider />
+        <ToolbarDivider theme={theme} />
 
         <ToolbarButton
           onClick={() =>
@@ -167,6 +190,7 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
           }
           isActive={editor.isActive("heading", { level: 1 })}
           title="Heading 1"
+          theme={theme}
         >
           <Heading1 size={15} />
         </ToolbarButton>
@@ -176,6 +200,7 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
           }
           isActive={editor.isActive("heading", { level: 2 })}
           title="Heading 2"
+          theme={theme}
         >
           <Heading2 size={15} />
         </ToolbarButton>
@@ -185,16 +210,18 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
             editor.isActive("paragraph") && !editor.isActive("fontSize")
           }
           title="Normal Text"
+          theme={theme}
         >
           <Type size={15} />
         </ToolbarButton>
 
-        <ToolbarDivider />
+        <ToolbarDivider theme={theme} />
 
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           isActive={editor.isActive("bold")}
           title="Bold"
+          theme={theme}
         >
           <Bold size={15} />
         </ToolbarButton>
@@ -202,6 +229,7 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
           onClick={() => editor.chain().focus().toggleItalic().run()}
           isActive={editor.isActive("italic")}
           title="Italic"
+          theme={theme}
         >
           <Italic size={15} />
         </ToolbarButton>
@@ -209,6 +237,7 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           isActive={editor.isActive("underline")}
           title="Underline"
+          theme={theme}
         >
           <Underline size={15} />
         </ToolbarButton>
@@ -216,16 +245,18 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
           onClick={() => editor.chain().focus().toggleHighlight().run()}
           isActive={editor.isActive("highlight")}
           title="Highlight"
+          theme={theme}
         >
           <Highlighter size={15} />
         </ToolbarButton>
 
-        <ToolbarDivider />
+        <ToolbarDivider theme={theme} />
 
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           isActive={editor.isActive("bulletList")}
           title="Bullet List"
+          theme={theme}
         >
           <List size={15} />
         </ToolbarButton>
@@ -233,15 +264,17 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           isActive={editor.isActive("orderedList")}
           title="Numbered List"
+          theme={theme}
         >
           <ListOrdered size={15} />
         </ToolbarButton>
 
-        <ToolbarDivider />
+        <ToolbarDivider theme={theme} />
 
         <ToolbarButton
           onClick={() => fileInputRef.current?.click()}
           title="Insert Image or GIF"
+          theme={theme}
         >
           <ImageIcon size={15} />
         </ToolbarButton>
@@ -254,23 +287,45 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
         />
       </div>
 
+      {/* ── Emoji picker trigger + popup ── */}
       <div className="relative shrink-0" ref={pickerRef}>
         <button
           type="button"
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          className={`px-3 h-9 sm:h-8 flex items-center gap-1.5 rounded-xl text-xs font-semibold transition-all border ${
-            showEmojiPicker
-              ? "bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-600/15"
-              : "bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800"
-          }`}
+          className={`
+            px-3 h-9 sm:h-8 flex items-center gap-1.5 rounded-xl text-xs font-semibold
+            transition-all duration-300 border
+            ${
+              showEmojiPicker
+                ? "bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-600/15"
+                : `${theme?.uiClass || "bg-slate-50 border-slate-200 text-slate-700"} ${
+                    theme?.uiBtnHover || "hover:bg-slate-100"
+                  }`
+            }
+          `}
         >
           <span>🥰</span>
           <span className="hidden sm:inline">Emojis</span>
         </button>
 
         {showEmojiPicker && (
-          <div className="absolute right-0 bottom-full sm:bottom-auto sm:top-full mb-2 sm:mb-0 sm:mt-2 z-50 w-72 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl flex flex-col gap-2 text-slate-900 dark:text-white animate-in fade-in slide-in-from-bottom-2 sm:slide-in-from-top-2 duration-150">
-            <div className="flex gap-1 border-b border-slate-100 dark:border-slate-900 pb-1.5 overflow-x-auto scrollbar-none">
+          <div
+            className={`
+              absolute right-0 bottom-full sm:bottom-auto sm:top-full
+              mb-2 sm:mb-0 sm:mt-2
+              z-50 w-72 p-3 rounded-2xl border shadow-2xl
+              flex flex-col gap-2
+              animate-in fade-in slide-in-from-bottom-2 sm:slide-in-from-top-2 duration-150
+              transition-colors duration-500
+              ${theme?.uiClass || "bg-white border-slate-200 text-slate-900"}
+            `}
+          >
+            {/* Category tab strip */}
+            <div
+              className={`flex gap-1 border-b pb-1.5 overflow-x-auto scrollbar-none ${
+                theme?.borderClass || "border-slate-100"
+              }`}
+            >
               {EMOJI_CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
@@ -278,8 +333,10 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
                   onClick={() => handleTabClick(cat.id)}
                   className={`px-2 py-1 text-[10px] font-bold rounded-md whitespace-nowrap transition-all ${
                     activeCategory === cat.id
-                      ? "bg-violet-600 text-white"
-                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5"
+                      ? theme?.uiBtnActive || "bg-violet-600 text-white"
+                      : `${theme?.mutedClass || "text-slate-500"} ${
+                          theme?.uiBtnHover || "hover:bg-slate-100"
+                        }`
                   }`}
                 >
                   {cat.label}
@@ -287,6 +344,7 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
               ))}
             </div>
 
+            {/* Scrollable emoji grid */}
             <div
               ref={scrollContainerRef}
               onScroll={handleScroll}
@@ -299,16 +357,30 @@ export default function EditorToolbar({ editor, pendingFilesRef }) {
                 );
                 return (
                   <div key={category.id} id={`emoji-section-${category.id}`}>
-                    <div className="text-[9px] uppercase tracking-wider font-extrabold text-violet-600 dark:text-violet-400 mb-1 bg-white dark:bg-slate-950 py-0.5 sticky top-0">
+                    {/* Section label — not sticky; picker is small enough that tabs serve as nav */}
+                    <div
+                      className={`text-[9px] uppercase tracking-wider font-extrabold mb-1 py-0.5 ${
+                        theme?.isDark ? "text-violet-400" : "text-violet-600"
+                      }`}
+                    >
                       {category.label}
                     </div>
+
                     <div className="grid grid-cols-4 gap-1.5">
                       {emojisInSection.map((emoji) => (
                         <button
                           key={emoji.name}
                           type="button"
                           onClick={() => handleSelectEmoji(emoji)}
-                          className="p-1 rounded-lg bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10 active:scale-90 transition-all flex items-center justify-center"
+                          className={`
+                            p-1 rounded-lg border active:scale-90 transition-all
+                            flex items-center justify-center
+                            ${
+                              theme?.isDark
+                                ? "bg-white/[0.01] border-white/5 hover:bg-white/10"
+                                : `bg-white/50 border-black/5 hover:bg-white/80`
+                            }
+                          `}
                           title={emoji.name}
                         >
                           <img

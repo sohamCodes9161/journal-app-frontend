@@ -15,6 +15,7 @@ export default function ThemeSelector({
       uiClass:
         "bg-slate-50 dark:bg-slate-900 text-slate-700 border-slate-200 dark:border-slate-800",
       previewBg: "#6366f1",
+      isDark: false,
     };
 
   useEffect(() => {
@@ -41,31 +42,18 @@ export default function ThemeSelector({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`
-          flex items-center gap-2
-          px-3 py-1.5
-          rounded-xl
-          border
-          shadow-sm
-          text-xs font-semibold
-          transition-all duration-300
-          ${currentTheme.uiClass}
-        `}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border shadow-sm text-xs font-semibold transition-all duration-300 ${currentTheme.uiClass}`}
       >
         <span
           className="w-3 h-3 rounded-full border border-black/10 shadow-inner inline-block shrink-0"
-          style={{
-            backgroundColor: currentTheme.previewBg,
-          }}
+          style={{ backgroundColor: currentTheme.previewBg }}
         />
-
         <span>
           Atmosphere{" "}
           <strong className="text-violet-600 dark:text-violet-400 font-bold ml-0.5">
             {activeThemeName}
           </strong>
         </span>
-
         <span className="text-[9px] opacity-60 ml-0.5">
           {isOpen ? "▲" : "▼"}
         </span>
@@ -73,20 +61,15 @@ export default function ThemeSelector({
 
       {isOpen && (
         <div
-          className="
-            absolute left-0 mt-2 w-56
-            rounded-2xl border
-            p-2
-            shadow-2xl
-            bg-white dark:bg-slate-950
-            border-slate-200 dark:border-slate-800
-            animate-in fade-in slide-in-from-top-2 duration-150
-          "
+          className={`absolute left-0 mt-2 w-56 rounded-2xl border p-2 shadow-2xl z-50 backdrop-blur-xl transition-colors duration-300 ${
+            theme.isDark
+              ? "bg-[#121115]/95 border-white/10 text-white"
+              : "bg-white/95 border-slate-200 text-slate-900"
+          }`}
         >
-          <p className="text-[10px] font-extrabold tracking-wider uppercase px-2 py-1.5 text-slate-400 dark:text-slate-500">
+          <p className="text-[10px] font-extrabold tracking-wider uppercase px-2 py-1.5 opacity-60">
             Select Atmosphere
           </p>
-
           <div
             className="flex flex-col gap-0.5 max-h-60 overflow-y-auto pr-0.5"
             style={{ scrollbarWidth: "thin" }}
@@ -102,34 +85,21 @@ export default function ThemeSelector({
                     onThemeChange(themeOption.id);
                     setIsOpen(false);
                   }}
-                  className={`
-                    w-full
-                    flex items-center gap-3
-                    p-2
-                    rounded-xl
-                    text-left
-                    text-xs
-                    transition-all duration-150
-                    ${
-                      isSelected
-                        ? "bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400 font-semibold"
-                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                    }
-                  `}
+                  className={`w-full flex items-center gap-3 p-2 rounded-xl text-left text-xs transition-all duration-150 ${
+                    isSelected
+                      ? "bg-violet-600 text-white font-semibold"
+                      : `hover:bg-black/5 dark:hover:bg-white/10 ${
+                          theme.isDark ? "text-slate-200" : "text-slate-700"
+                        }`
+                  }`}
                 >
                   <span
                     className="w-4 h-4 rounded-full border border-black/10 flex-shrink-0 shadow-sm"
-                    style={{
-                      backgroundColor: themeOption.previewBg,
-                    }}
+                    style={{ backgroundColor: themeOption.previewBg }}
                   />
-
                   <span className="flex-1 truncate">{themeOption.name}</span>
-
                   {isSelected && (
-                    <span className="text-violet-600 dark:text-violet-400 text-[11px] font-bold">
-                      ✓
-                    </span>
+                    <span className="text-white text-[11px] font-bold">✓</span>
                   )}
                 </button>
               );

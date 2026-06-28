@@ -95,6 +95,7 @@ const JournalEditor = forwardRef(
       },
       editorProps: {
         attributes: {
+          // text-current inherits color from the themed canvas body wrapper below
           class: `w-full min-w-full block min-h-[400px] px-2 py-1 outline-none transition-colors duration-500 prose max-w-none overflow-y-auto text-sm text-current`,
         },
       },
@@ -126,7 +127,7 @@ const JournalEditor = forwardRef(
 
     return (
       <div className="space-y-4 w-full max-w-4xl mx-auto block">
-        {/* Top Controls Deck */}
+        {/* Top Controls Deck — theme selector + character count */}
         <div
           className={`flex items-center justify-between gap-4 border-b pb-2 transition-colors duration-500 ${activeTheme.borderClass}`}
         >
@@ -144,7 +145,7 @@ const JournalEditor = forwardRef(
           </div>
         </div>
 
-        {/* Toolbar */}
+        {/* Formatting Toolbar — now fully theme-aware */}
         {editable && (
           <EditorToolbar
             editor={editor}
@@ -153,7 +154,7 @@ const JournalEditor = forwardRef(
           />
         )}
 
-        {/* Extracted Reflection Panel Component */}
+        {/* Reflection Helper Panel — now fully theme-aware */}
         {editable && (
           <JournalReflectionHelper
             onInsertMention={(title) => {
@@ -165,10 +166,11 @@ const JournalEditor = forwardRef(
                 )
                 .run();
             }}
+            theme={activeTheme}
           />
         )}
 
-        {/* Tiptap Floating Bubble Overlay Menu */}
+        {/* Tiptap Floating Bubble Overlay Menu (image alignment) */}
         {editable && (
           <BubbleMenu
             editor={editor}
@@ -219,9 +221,12 @@ const JournalEditor = forwardRef(
           </BubbleMenu>
         )}
 
-        {/* Canvas Body Container */}
+        {/* Canvas Body — bgClass is explicit here so the typing area always
+            has the correct theme background regardless of its parent context.
+            textClass cascades into the Tiptap prose via text-current on the
+            inner EditorContent attributes. */}
         <div
-          className={`w-full block min-h-[400px] transition-all duration-500 rounded-xl p-2 ${activeTheme.textClass}`}
+          className={`w-full block min-h-[400px] transition-all duration-500 rounded-xl p-2 ${activeTheme.bgClass} ${activeTheme.textClass}`}
         >
           <EditorContent editor={editor} className="w-full block" />
         </div>
