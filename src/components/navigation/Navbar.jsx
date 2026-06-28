@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui";
 import { AuthContext } from "@/features/auth/providers/AuthProvider";
 import useLogout from "@/features/auth/hooks/useLogout";
-import NotificationHub from "./NotificationHub"; // Imported seamlessly right here!
+import NotificationHub from "./NotificationHub";
 
 export default function Navbar() {
   const { user } = React.useContext(AuthContext);
@@ -18,33 +18,33 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/40 backdrop-blur-xl">
       <div className="flex h-16 items-center justify-between px-4 sm:px-6">
-        {/* Left Side: Personal Greeting context */}
-        <div>
+        {/* Left Side: Hide the entire greeting on mobile to save space */}
+        <div className="hidden sm:block">
           <h1 className="text-sm font-medium text-slate-400">
             Welcome back,{" "}
             <span className="text-slate-100 font-semibold">{username}</span>
           </h1>
         </div>
 
+        {/* Mobile-only logo/title placeholder so the left side isn't empty on phones */}
+        <div className="block sm:hidden text-lg font-bold">Journal App</div>
+
         {/* Right Side: Identity Layout & Hub Indicators */}
-        <div className="flex items-center gap-4">
-          {/* SYSTEM INTEGRATION: Mounted notification hub center */}
+        <div className="flex items-center gap-2 sm:gap-4">
           <NotificationHub />
 
-          {/* Dynamic Streak Badge */}
           {journalingStreak > 0 && (
             <div
-              className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] font-bold px-2.5 py-1 rounded-full animate-pulse"
+              className="hidden sm:flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] font-bold px-2.5 py-1 rounded-full animate-pulse"
               title="Your daily consecutive journaling streak!"
             >
-              🔥 {journalingStreak} Day Streak
+              🔥 {journalingStreak}
             </div>
           )}
 
-          {/* Interactive User Settings Link Anchor */}
           <Link
             to="/app/settings"
-            className="flex items-center gap-2.5 bg-white/[0.02] border border-white/5 hover:border-violet-500/30 pl-3 pr-2 py-1 rounded-xl transition group"
+            className="flex items-center gap-2.5 bg-white/[0.02] border border-white/5 hover:border-violet-500/30 sm:pl-3 pr-2 py-1 p-1 rounded-xl transition group"
           >
             <span className="text-xs font-semibold text-slate-300 group-hover:text-slate-100 transition hidden sm:inline-block">
               {username}
@@ -56,18 +56,19 @@ export default function Navbar() {
             />
           </Link>
 
-          {/* Divider line split strip */}
           <div className="h-4 w-px bg-white/10 hidden sm:block" />
 
-          {/* Exit Access System Trigger Button */}
+          {/* Compress Logout to just an icon or smaller text on mobile */}
           <Button
             variant="secondary"
             size="sm"
             isLoading={logoutMutation.isPending}
             onClick={() => logoutMutation.mutate()}
-            className="bg-white/5 hover:bg-white/10 border border-white/5 text-xs font-medium"
+            className="bg-white/5 hover:bg-white/10 border border-white/5 text-xs font-medium px-2 sm:px-3"
+            title="Logout"
           >
-            Logout
+            <span className="hidden sm:inline">Logout</span>
+            <span className="sm:hidden">🚪</span>
           </Button>
         </div>
       </div>
