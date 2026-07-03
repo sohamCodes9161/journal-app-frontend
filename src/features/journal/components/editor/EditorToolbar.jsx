@@ -21,6 +21,65 @@ const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
+/* 
+  FIXED: Added utility function to physically compress image files down using HTML5 canvas.
+  This scales down excessive dimensions and optimizes quality to significantly lower file sizes.
+*/
+const compressImageFile = (file, maxWidth = 1400, quality = 0.75) => {
+  return new Promise((resolve, reject) => {
+    // Skip canvas compression for animated GIFs to preserve frames
+    if (file.type === "image/gif") {
+      return resolve(file);
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        // Downscale matching target maximum dimension boundaries
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert the rendered canvas frame back to a lightweight JPEG blob
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              return reject(new Error("Canvas blob conversion failed"));
+            }
+            const compressedFile = new File(
+              [blob],
+              file.name.replace(/\.[^/.]+$/, "") + ".jpg",
+              {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              }
+            );
+            resolve(compressedFile);
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 function ToolbarButton({ onClick, isActive, title, children, theme }) {
   return (
     <button
@@ -29,7 +88,7 @@ function ToolbarButton({ onClick, isActive, title, children, theme }) {
       onClick={onClick}
       title={title}
       className={`
-        w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg transition-all duration-200 shrink-0 snap-center
+        w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg transition-all duration-200 shrink-0 snap-center
         ${
           isActive
             ? `${
@@ -49,7 +108,7 @@ function ToolbarButton({ onClick, isActive, title, children, theme }) {
 function ToolbarDivider({ theme }) {
   return (
     <div
-      className={`w-px h-4 self-center mx-1 select-none shrink-0 transition-colors duration-500 ${
+      className={`hidden sm:block w-px h-4 self-center mx-1 select-none shrink-0 transition-colors duration-500 ${
         theme?.uiDivider || "bg-slate-200"
       }`}
     />
@@ -118,7 +177,8 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
       .run();
   };
 
-  function handleFileChange(event) {
+  // FIXED: Integrated client-side canvas processing logic right inside the handler flow
+  async function handleFileChange(event) {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -128,15 +188,37 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
       return;
     }
 
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      toast.error(`File too large. Maximum size is ${MAX_FILE_SIZE_MB}MB.`);
+    let processedFile = file;
+
+    // Trigger physical binary compression for large, non-GIF images
+    if (file.type !== "image/gif") {
+      const compressToastId = toast.loading(
+        "Compressing image for optimal cloud storage..."
+      );
+      try {
+        processedFile = await compressImageFile(file);
+        toast.dismiss(compressToastId);
+      } catch (compressionError) {
+        toast.dismiss(compressToastId);
+        console.error(
+          "Compression engine bypassed; falling back to original:",
+          compressionError
+        );
+      }
+    }
+
+    // Guard check against the final optimized file capacity limit
+    if (processedFile.size > MAX_FILE_SIZE_BYTES) {
+      toast.error(
+        `File is too large. Maximum size allowed is ${MAX_FILE_SIZE_MB}MB.`
+      );
       event.target.value = "";
       return;
     }
 
-    const blobUrl = URL.createObjectURL(file);
+    const blobUrl = URL.createObjectURL(processedFile);
     if (pendingFilesRef?.current) {
-      pendingFilesRef.current.set(blobUrl, file);
+      pendingFilesRef.current.set(blobUrl, processedFile);
     }
 
     editor
@@ -151,15 +233,11 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
   }
 
   return (
-    <div className="flex flex-row items-center justify-between gap-3 w-full">
-      {/* 
-        FIXED: Swapped 'w-full sm:w-auto' to 'flex-1 min-w-0' to let the button strip 
-        responsively compress and scroll horizontally inside its own row bounds.
-      */}
+    <div className="flex flex-row items-center justify-start gap-2 w-full">
       <div
         className={`
-          flex items-center gap-0.5 border rounded-xl p-1
-          flex-1 min-w-0
+          flex items-center gap-0.5 border rounded-xl p-0.5 sm:p-1
+          w-auto max-w-full
           overflow-x-auto scrollbar-none snap-x touch-pan-x
           transition-colors duration-500
           ${theme?.uiClass || "bg-slate-50 border-slate-200 text-slate-700"}
@@ -170,14 +248,14 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
           title="Undo"
           theme={theme}
         >
-          <Undo size={15} />
+          <Undo className="w-3.5 h-3.5 sm:w-[15px] sm:h-[15px]" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().redo().run()}
           title="Redo"
           theme={theme}
         >
-          <Redo size={15} />
+          <Redo className="w-3.5 h-3.5 sm:w-[15px] sm:h-[15px]" />
         </ToolbarButton>
 
         <ToolbarDivider theme={theme} />
@@ -190,7 +268,7 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
           title="Heading 1"
           theme={theme}
         >
-          <Heading1 size={15} />
+          <Heading1 className="w-3.5 h-3.5 sm:w-[15px] sm:h-[15px]" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() =>
@@ -200,7 +278,7 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
           title="Heading 2"
           theme={theme}
         >
-          <Heading2 size={15} />
+          <Heading2 className="w-3.5 h-3.5 sm:w-[15px] sm:h-[15px]" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().setParagraph().run()}
@@ -210,7 +288,7 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
           title="Normal Text"
           theme={theme}
         >
-          <Type size={15} />
+          <Type className="w-3.5 h-3.5 sm:w-[15px] sm:h-[15px]" />
         </ToolbarButton>
 
         <ToolbarDivider theme={theme} />
@@ -221,7 +299,7 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
           title="Bold"
           theme={theme}
         >
-          <Bold size={15} />
+          <Bold className="w-3.5 h-3.5 sm:w-[15px] sm:h-[15px]" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -229,7 +307,7 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
           title="Italic"
           theme={theme}
         >
-          <Italic size={15} />
+          <Italic className="w-3.5 h-3.5 sm:w-[15px] sm:h-[15px]" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleUnderline().run()}
@@ -237,7 +315,7 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
           title="Underline"
           theme={theme}
         >
-          <Underline size={15} />
+          <Underline className="w-3.5 h-3.5 sm:w-[15px] sm:h-[15px]" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHighlight().run()}
@@ -245,7 +323,7 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
           title="Highlight"
           theme={theme}
         >
-          <Highlighter size={15} />
+          <Highlighter className="w-3.5 h-3.5 sm:w-[15px] sm:h-[15px]" />
         </ToolbarButton>
 
         <ToolbarDivider theme={theme} />
@@ -256,7 +334,7 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
           title="Bullet List"
           theme={theme}
         >
-          <List size={15} />
+          <List className="w-3.5 h-3.5 sm:w-[15px] sm:h-[15px]" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
@@ -264,7 +342,7 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
           title="Numbered List"
           theme={theme}
         >
-          <ListOrdered size={15} />
+          <ListOrdered className="w-3.5 h-3.5 sm:w-[15px] sm:h-[15px]" />
         </ToolbarButton>
 
         <ToolbarDivider theme={theme} />
@@ -274,7 +352,7 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
           title="Insert Image or GIF"
           theme={theme}
         >
-          <ImageIcon size={15} />
+          <ImageIcon className="w-3.5 h-3.5 sm:w-[15px] sm:h-[15px]" />
         </ToolbarButton>
         <input
           ref={fileInputRef}
@@ -285,13 +363,12 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
         />
       </div>
 
-      {/* ── Emoji picker trigger + popup ── */}
       <div className="relative shrink-0" ref={pickerRef}>
         <button
           type="button"
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
           className={`
-            px-3 h-9 sm:h-8 flex items-center gap-1.5 rounded-xl text-xs font-semibold
+            w-7 h-7 sm:w-auto sm:px-3 sm:h-8 flex items-center justify-center sm:gap-1.5 rounded-xl text-xs font-semibold
             transition-all duration-300 border
             ${
               showEmojiPicker
@@ -309,7 +386,7 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
         {showEmojiPicker && (
           <div
             className={`
-              absolute right-0 bottom-full sm:bottom-auto sm:top-full
+              absolute left-0 sm:left-auto sm:right-0 bottom-full sm:bottom-auto sm:top-full
               mb-2 sm:mb-0 sm:mt-2
               z-50 w-72 p-3 rounded-2xl border shadow-2xl
               flex flex-col gap-2
@@ -318,7 +395,6 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
               ${theme?.uiClass || "bg-white border-slate-200 text-slate-900"}
             `}
           >
-            {/* Category tab strip */}
             <div
               className={`flex gap-1 border-b pb-1.5 overflow-x-auto scrollbar-none ${
                 theme?.borderClass || "border-slate-100"
@@ -342,7 +418,6 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
               ))}
             </div>
 
-            {/* Scrollable emoji grid */}
             <div
               ref={scrollContainerRef}
               onScroll={handleScroll}
