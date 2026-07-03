@@ -1,5 +1,4 @@
-// Force fresh deployment update 2
-
+// src/features/journal/components/editor/EditorToolbar.jsx
 import {
   Bold,
   Italic,
@@ -21,8 +20,6 @@ import { CUSTOM_EMOJIS, EMOJI_CATEGORIES } from "../../utils/customEmojis";
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-
-// ── Internal sub-components receive theme so they style themselves correctly ──
 
 function ToolbarButton({ onClick, isActive, title, children, theme }) {
   return (
@@ -58,8 +55,6 @@ function ToolbarDivider({ theme }) {
     />
   );
 }
-
-// ── Main exported component ───────────────────────────────────────────────────
 
 export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
   const fileInputRef = useRef(null);
@@ -157,11 +152,14 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
 
   return (
     <div className="flex flex-row items-center justify-between gap-3 w-full">
-      {/* ── Formatting button strip ── */}
+      {/* 
+        FIXED: Swapped 'w-full sm:w-auto' to 'flex-1 min-w-0' to let the button strip 
+        responsively compress and scroll horizontally inside its own row bounds.
+      */}
       <div
         className={`
           flex items-center gap-0.5 border rounded-xl p-1
-          w-full sm:w-auto
+          flex-1 min-w-0
           overflow-x-auto scrollbar-none snap-x touch-pan-x
           transition-colors duration-500
           ${theme?.uiClass || "bg-slate-50 border-slate-200 text-slate-700"}
@@ -357,7 +355,6 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
                 );
                 return (
                   <div key={category.id} id={`emoji-section-${category.id}`}>
-                    {/* Section label — not sticky; picker is small enough that tabs serve as nav */}
                     <div
                       className={`text-[9px] uppercase tracking-wider font-extrabold mb-1 py-0.5 ${
                         theme?.isDark ? "text-violet-400" : "text-violet-600"

@@ -18,7 +18,6 @@ import { InlineEmoji } from "./extensions/InlineEmoji";
 import { ExtendedImage } from "../../utils/ExtendedImage";
 import { getThemeConfig } from "../../utils/journalThemes";
 
-// ── FontSize extension (kept clean inside editor file) ───────────────────────
 const FontSize = Mark.create({
   name: "fontSize",
   addAttributes() {
@@ -60,7 +59,7 @@ const JournalEditor = forwardRef(
       editable = true,
       onChange,
       onThemeChange,
-      themePreset = "warm-parchment", // Uses the true database fallback string
+      themePreset = "warm-parchment",
       pendingFilesRef,
     },
     ref
@@ -95,15 +94,13 @@ const JournalEditor = forwardRef(
       },
       editorProps: {
         attributes: {
-          // text-current inherits color from the themed canvas body wrapper below
-          class: `w-full min-w-full block min-h-[400px] px-2 py-1 outline-none transition-colors duration-500 prose max-w-none overflow-y-auto text-sm text-current`,
+          class: `w-full min-w-full block min-h-[450px] py-2 outline-none transition-colors duration-500 prose max-w-none overflow-y-auto text-base text-current focus:ring-0`,
         },
       },
     });
 
     useImperativeHandle(ref, () => editor, [editor]);
 
-    // Handle initial content sync cleanly
     useEffect(() => {
       if (!editor || !initialContent) return;
       const currentContentStr = JSON.stringify(editor.getJSON());
@@ -117,7 +114,6 @@ const JournalEditor = forwardRef(
       }
     }, [editor, initialContent]);
 
-    // Handle edit mode toggle updates
     useEffect(() => {
       if (!editor) return;
       editor.setEditable(editable);
@@ -126,8 +122,8 @@ const JournalEditor = forwardRef(
     if (!editor) return null;
 
     return (
-      <div className="space-y-4 w-full max-w-4xl mx-auto block">
-        {/* Top Controls Deck — theme selector + character count */}
+      <div className="space-y-4 w-full block">
+        {/* Top Atmosphere Settings Bar */}
         <div
           className={`flex items-center justify-between gap-4 border-b pb-2 transition-colors duration-500 ${activeTheme.borderClass}`}
         >
@@ -145,16 +141,23 @@ const JournalEditor = forwardRef(
           </div>
         </div>
 
-        {/* Formatting Toolbar — now fully theme-aware */}
+        {/* 
+          FIXED: Placed the formatting toolbar in a touch-responsive swipe container 
+          so it scrolls cleanly horizontally instead of clipping on mobile layouts.
+        */}
         {editable && (
-          <EditorToolbar
-            editor={editor}
-            pendingFilesRef={pendingFilesRef}
-            theme={activeTheme}
-          />
+          <div className="w-full overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <div className="min-w-max">
+              <EditorToolbar
+                editor={editor}
+                pendingFilesRef={pendingFilesRef}
+                theme={activeTheme}
+              />
+            </div>
+          </div>
         )}
 
-        {/* Reflection Helper Panel — now fully theme-aware */}
+        {/* Helper Panel */}
         {editable && (
           <JournalReflectionHelper
             onInsertMention={(title) => {
@@ -170,7 +173,7 @@ const JournalEditor = forwardRef(
           />
         )}
 
-        {/* Tiptap Floating Bubble Overlay Menu (image alignment) */}
+        {/* Bubble Menu Overlay */}
         {editable && (
           <BubbleMenu
             editor={editor}
@@ -221,13 +224,11 @@ const JournalEditor = forwardRef(
           </BubbleMenu>
         )}
 
-        {/* Canvas Body — bgClass is explicit here so the typing area always
-            has the correct theme background regardless of its parent context.
-            textClass cascades into the Tiptap prose via text-current on the
-            inner EditorContent attributes. */}
-        <div
-          className={`w-full block min-h-[400px] transition-all duration-500 rounded-xl p-2 ${activeTheme.bgClass} ${activeTheme.textClass}`}
-        >
+        {/* 
+          FIXED: Stripped away hard borders, rounding constraints, and local backgrounds. 
+          The content area now blends naturally into the page background.
+        */}
+        <div className={`w-full block min-h-[450px] ${activeTheme.textClass}`}>
           <EditorContent editor={editor} className="w-full block" />
         </div>
       </div>

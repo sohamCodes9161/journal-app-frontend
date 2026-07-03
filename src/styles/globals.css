@@ -1,7 +1,7 @@
 /* Update this inside your global/editor CSS stylesheet */
 
 :root {
-  /* Dynamic Architecture Variables (Default Baseline Dark Mode) */
+  /* Core Application Theme Variables (Baseline Dark Mode) */
   --atmosphere-bg: #121115;
   --atmosphere-gradient-top: #172554; /* Your classic dark navy */
   --atmosphere-text: #e2dfe5;
@@ -12,20 +12,6 @@
   --atmosphere-scrollbar: rgba(255, 255, 255, 0.12);
   --atmosphere-scrollbar-hover: rgba(255, 255, 255, 0.2);
   --color-scheme: dark;
-}
-
-[data-atmosphere="warm-parchment"] {
-  /* Warm Cream Adaptation Layer */
-  --atmosphere-bg: #fff8ee;
-  --atmosphere-gradient-top: #f4ead4; /* Soft warm cream gradient node */
-  --atmosphere-text: #2a231d;
-  --atmosphere-text-muted: rgba(42, 35, 29, 0.6);
-  --atmosphere-border: #eadfcb;
-  --atmosphere-surface: #f4ebdd;
-  --atmosphere-surface-hover: rgba(42, 35, 29, 0.06);
-  --atmosphere-scrollbar: rgba(42, 35, 29, 0.15);
-  --atmosphere-scrollbar-hover: rgba(42, 35, 29, 0.25);
-  --color-scheme: light;
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -43,12 +29,13 @@ body,
 
 body {
   margin: 0;
-  /* Fixed: The top gradient node now transforms with your current theme selection! */
   background: radial-gradient(
     circle at top,
     var(--atmosphere-gradient-top),
     var(--atmosphere-bg)
   );
+  /* Pins the gradient background to the viewport so it doesn't stretch on scroll */
+  background-attachment: fixed;
   color: var(--atmosphere-text);
   font-family: Inter, system-ui, sans-serif;
   text-rendering: optimizeLegibility;
@@ -76,7 +63,6 @@ select {
   margin: 2rem auto;
   border-radius: 1.5rem;
   object-fit: cover;
-  /* Fixed: Dynamic local adaptive borders */
   border: 1px solid var(--atmosphere-border);
   overflow: hidden;
   transition:
