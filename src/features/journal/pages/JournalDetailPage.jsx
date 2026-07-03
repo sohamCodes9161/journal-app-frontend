@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import JournalEditor from "../components/editor/JournalEditor";
+import ThemeSelector from "../components/editor/ThemeSelector";
 import useJournal from "../hooks/useJournal";
 import useUpdateJournal from "../hooks/useUpdateJournal";
 import useDeleteJournal from "../hooks/useDeleteJournal";
@@ -13,11 +14,16 @@ import {
 } from "../utils/journalDraftStorage";
 import { JOURNAL_THEMES } from "../utils/journalThemes";
 import { JournalThemeProvider } from "../context/JournalThemeContext";
+// FIXED: Import your upload image service method
+import { uploadImage } from "../api/uploadApi";
 
 export default function JournalDetailPage() {
   const navigate = useNavigate();
   const { journalId } = useParams();
   const editorRef = useRef(null);
+
+  // FIXED: Instantiate the pending files map to track uploaded local file binaries during edits
+  const pendingFilesRef = useRef(new Map());
 
   const { data: journal, isLoading, isError } = useJournal(journalId);
   const updateJournalMutation = useUpdateJournal();
@@ -39,30 +45,12 @@ export default function JournalDetailPage() {
     setInitialEditorContent(existingDraft?.content || journal.content || null);
 
     if (journal.styleSettings?.themePreset) {
-      const legacyMap = {
-        parchment: "warm-parchment",
-        midnight: "midnight",
-        "cosmic-dark": "midnight",
-        blush_pink: "sakura-dusk",
-        peach_glow: "desert-sandstone",
-        aqua_breeze: "ocean-serenity",
-      };
-
-      const parsedTheme =
-        legacyMap[journal.styleSettings.themePreset] ||
-        journal.styleSettings.themePreset;
-      setSelectedTheme(parsedTheme);
+      const parsedTheme = journal.styleSettings.themePreset;
+      setSelectedTheme(
+        parsedTheme === "parchment" ? "warm-parchment" : parsedTheme
+      );
     } else {
-      const normalization = journal.mood?.toLowerCase() || "";
-      if (["sad", "reflective", "anxious"].includes(normalization)) {
-        setSelectedTheme("midnight");
-      } else if (
-        ["happy", "grateful", "peaceful", "excited"].includes(normalization)
-      ) {
-        setSelectedTheme("sakura-dusk");
-      } else {
-        setSelectedTheme("warm-parchment");
-      }
+      setSelectedTheme("warm-parchment");
     }
 
     setIsInitialized(true);
@@ -74,12 +62,7 @@ export default function JournalDetailPage() {
     const timeout = setTimeout(() => {
       const content = editorRef.current?.getJSON();
       if (!content) return;
-
-      saveJournalDraft({
-        journalId,
-        title,
-        content,
-      });
+      saveJournalDraft({ journalId, title, content });
     }, 1000);
 
     return () => clearTimeout(timeout);
@@ -88,46 +71,97 @@ export default function JournalDetailPage() {
   const themeConfig =
     JOURNAL_THEMES.find((t) => t.id === selectedTheme) || JOURNAL_THEMES[0];
 
+  /* 
+    FIXED: Deep-traversal parser to scan and substitute newly edited blob objects
+    with remote server URL endpoints before database mutations execute.
+  */
+  const processAndUploadImages = async (node) => {
+    if (!node) return node;
+
+    if (node.type === "image" && node.attrs?.src?.startsWith("blob:")) {
+      const blobUrl = node.attrs.src;
+      const rawFile = pendingFilesRef.current.get(blobUrl);
+
+      if (rawFile) {
+        try {
+          const uploadResult = await uploadImage(rawFile);
+
+          // FIXED: Extract both the secure URL and the structural Media ID
+          const permanentUrl = uploadResult?.url;
+          const databaseMediaId = uploadResult?.mediaId;
+
+          return {
+            ...node,
+            attrs: {
+              ...node.attrs,
+              src: permanentUrl,
+              mediaId: databaseMediaId, // FIXED: Securely links database document references
+            },
+          };
+        } catch (uploadError) {
+          console.error("Failed uploading image block node:", uploadError);
+          throw new Error("Image upload failed");
+        }
+      }
+    }
+
+    if (node.content && Array.isArray(node.content)) {
+      const updatedChildren = [];
+      for (const childNode of node.content) {
+        const processedChild = await processAndUploadImages(childNode);
+        updatedChildren.push(processedChild);
+      }
+      return { ...node, content: updatedChildren };
+    }
+
+    return node;
+  };
   async function handleSave() {
     try {
       const content = editorRef.current?.getJSON();
       if (!content) return toast.error("Editor content missing");
 
+      let fullyUploadedContent = content;
+
+      // Intercept data submission and handle uploads if content holds active blobs
+      const uploadToastId = toast.loading(
+        "Uploading new entry images safely..."
+      );
+      try {
+        fullyUploadedContent = await processAndUploadImages(content);
+        toast.dismiss(uploadToastId);
+      } catch (err) {
+        toast.dismiss(uploadToastId);
+        return toast.error("Failed to upload entry images. Please save again.");
+      }
+
       await updateJournalMutation.mutateAsync({
         journalId,
         data: {
           title: title.trim(),
-          content,
-          mood: mood,
-          styleSettings: {
-            themePreset: selectedTheme,
-          },
+          content: fullyUploadedContent, // FIXED: Sends safe, permanent cloud urls
+          mood,
+          styleSettings: { themePreset: selectedTheme },
         },
       });
 
+      pendingFilesRef.current.clear(); // Empty the temporary layout mapping cache
       clearJournalDraft(journalId);
       toast.success("Journal saved successfully ✨");
       setIsEditing(false);
     } catch (error) {
-      console.error(error);
       toast.error("Failed to save journal");
     }
   }
 
   const handleDelete = async () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this journal permanently?"
-      )
-    )
-      return;
-
+    if (!window.confirm("Permanently delete this journal entry?")) return;
     try {
       await deleteJournalMutation.mutateAsync(journalId);
-      toast.success("Entry removed completely");
+      toast.success("Entry removed");
       navigate("/app/journals");
     } catch (error) {
-      toast.error("Failed to delete journal entry.");
+      toast.error("Failed to delete entry.");
     }
   };
 
@@ -135,7 +169,7 @@ export default function JournalDetailPage() {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <p className="text-slate-400 animate-pulse text-xs font-mono">
-          Gathering thoughts...
+          Gathering entry...
         </p>
       </div>
     );
@@ -144,9 +178,7 @@ export default function JournalDetailPage() {
   if (isError || !journal) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <p className="text-rose-400 font-medium text-sm">
-          Journal entry could not be found.
-        </p>
+        <p className="text-rose-400 text-sm">Entry not found.</p>
       </div>
     );
   }
@@ -154,113 +186,94 @@ export default function JournalDetailPage() {
   return (
     <JournalThemeProvider themePreset={selectedTheme}>
       <div
-        className={`min-h-screen w-full transition-colors duration-500 px-0 sm:px-6 py-6 selection:bg-violet-500/20 ${themeConfig.bgClass} ${themeConfig.textClass}`}
+        className={`fixed inset-0 w-full h-full overflow-y-auto transition-colors duration-500 px-4 sm:px-8 py-6 selection:bg-violet-500/20 ${themeConfig.bgClass} ${themeConfig.textClass}`}
       >
-        <div className="max-w-3xl mx-auto space-y-6 px-4 sm:px-0">
-          <div
-            className={`w-full block transition-colors duration-500 border-b pb-4 ${themeConfig.borderClass}`}
-          >
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between w-full">
-                {/* Mood Tag Display */}
-                <div
-                  className={`inline-flex items-center rounded-xl border px-3 py-1.5 text-xs font-bold tracking-wide uppercase shadow-sm select-none transition-colors duration-500 ${
-                    themeConfig.isDark
-                      ? "border-white/10 bg-white/5 text-slate-200"
-                      : `${themeConfig.borderClass} bg-black/5 ${themeConfig.textClass}`
-                  }`}
-                >
-                  <span className={`mr-1.5 ${themeConfig.mutedClass}`}>
-                    Mood:
-                  </span>
-                  {mood}
-                </div>
-
-                {/* Theme-Aware Contextual Buttons */}
-                <div className="flex items-center gap-2.5">
-                  {isEditing ? (
-                    <>
-                      <button
-                        onClick={() => setIsEditing(false)}
-                        className={`text-xs font-semibold px-3 py-2 rounded-xl border transition-all ${
-                          themeConfig.isDark
-                            ? "text-slate-300 border-white/10 hover:bg-white/5"
-                            : "text-slate-700 border-black/10 hover:bg-black/5"
-                        }`}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleSave}
-                        disabled={updateJournalMutation.isPending}
-                        className="text-xs font-semibold px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white shadow-sm transition-all disabled:opacity-50"
-                      >
-                        {updateJournalMutation.isPending ? "Saving..." : "Save"}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => setIsEditing(true)}
-                        className={`text-xs font-semibold px-4 py-2 rounded-xl border transition-all shadow-sm ${
-                          themeConfig.isDark
-                            ? "text-slate-200 border-white/10 bg-white/5 hover:bg-white/10"
-                            : "text-slate-800 border-black/15 bg-black/[0.02] hover:bg-black/5"
-                        }`}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={handleDelete}
-                        disabled={deleteJournalMutation.isPending}
-                        className={`text-xs font-semibold px-4 py-2 rounded-xl border transition-all ${
-                          themeConfig.isDark
-                            ? "text-rose-400 border-rose-500/20 hover:bg-rose-500/10"
-                            : "text-rose-600 border-rose-200 bg-rose-50/50 hover:bg-rose-100/70"
-                        }`}
-                      >
-                        {deleteJournalMutation.isPending
-                          ? "Deleting..."
-                          : "Delete"}
-                      </button>
-                    </>
-                  )}
-                </div>
+        <div className="max-w-2xl mx-auto flex flex-col min-h-full pb-24">
+          {/* Unified Action Header */}
+          <div className="flex items-center justify-between w-full h-12 mb-6 shrink-0">
+            {isEditing ? (
+              <ThemeSelector
+                currentThemeId={selectedTheme}
+                onThemeChange={setSelectedTheme}
+                theme={themeConfig}
+              />
+            ) : (
+              <div
+                className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-bold tracking-wide uppercase bg-black/5 dark:bg-white/10 ${themeConfig.textClass}`}
+              >
+                <span className="opacity-60 mr-1">Mood:</span> {mood}
               </div>
+            )}
 
-              {/* Title Input Frame */}
+            {/* Header Operations Control Block */}
+            <div className="flex items-center gap-2">
               {isEditing ? (
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className={`w-full bg-transparent text-2xl font-bold tracking-tight outline-none border-b pb-1 transition-colors duration-500 focus:ring-0 ${themeConfig.borderClass} ${themeConfig.textClass}`}
-                  placeholder="Entry title..."
-                />
+                <>
+                  <button
+                    onClick={() => {
+                      pendingFilesRef.current.clear();
+                      setIsEditing(false);
+                    }}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className="text-xs font-semibold px-4 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white shadow-sm transition-colors"
+                  >
+                    Save
+                  </button>
+                </>
               ) : (
-                <h1
-                  className={`text-2xl font-bold tracking-tight transition-colors duration-500 ${themeConfig.textClass}`}
-                >
-                  {title || "Untitled Entry"}
-                </h1>
+                <>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="text-xs font-semibold px-4 py-1.5 rounded-xl border border-black/10 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-xl text-rose-500 hover:bg-rose-500/10 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </>
               )}
             </div>
           </div>
 
-          {/* 
-            FIXED: Removed the <FeelingSelector /> layout tray entirely from here.
-            Mood changes are now exclusively handled inside the new creation mode flows.
-          */}
+          {/* Continuous Canvas Block */}
+          <div className="w-full flex-1 flex flex-col gap-3">
+            {isEditing ? (
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    editorRef.current?.commands.focus("start");
+                  }
+                }}
+                className="w-full bg-transparent text-3xl font-extrabold tracking-tight outline-none border-none p-0 focus:ring-0 focus:outline-none"
+                placeholder="Untitled Entry"
+              />
+            ) : (
+              <h1 className="text-3xl font-extrabold tracking-tight">
+                {title || "Untitled Entry"}
+              </h1>
+            )}
 
-          {/* Canvas Wrapper */}
-          <div className="w-full block transition-colors duration-500">
+            {/* FIXED: Passed the memory cache reference down to power the image insert tool inputs seamlessly */}
             <JournalEditor
               ref={editorRef}
               initialContent={initialEditorContent}
               editable={isEditing}
               onChange={() => {}}
-              onThemeChange={(newThemeId) => setSelectedTheme(newThemeId)}
               themePreset={selectedTheme}
+              pendingFilesRef={pendingFilesRef}
             />
           </div>
         </div>
