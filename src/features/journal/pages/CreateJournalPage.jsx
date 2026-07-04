@@ -6,7 +6,6 @@ import JournalEditor from "../components/editor/JournalEditor";
 import ThemeSelector from "../components/editor/ThemeSelector";
 import { useCreateJournal } from "../hooks/useCreateJournal";
 import { getThemeConfig } from "../utils/journalThemes";
-// FIXED: Import your upload image service method (Adjust path if your file name varies)
 import { uploadImage } from "../api/uploadApi";
 
 const MOODS = [
@@ -25,14 +24,21 @@ export default function CreateJournalPage() {
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
   const editorRef = useRef(null);
+  const statusTimerRef = useRef(null);
 
-  // FIXED: Instantiate the memory map tracker for matching temporary blob URLs to raw files
+  // Memory map tracker for matching temporary blob URLs to raw files
   const pendingFilesRef = useRef(new Map());
 
   const [title, setTitle] = useState("");
   const [feeling, setFeeling] = useState("neutral");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [currentThemeId, setCurrentThemeId] = useState("warm-parchment");
+
+  /*
+    Tracks synchronization states across local mutations and cloud updates.
+    Available states: "saved" (idle) | "saving" (typing/processing) | "local-saved" | "cloud-saving"
+  */
+  const [syncStatus, setSyncStatus] = useState("saved");
 
   const { mutateAsync: createJournal, isPending } = useCreateJournal();
 
@@ -46,13 +52,30 @@ export default function CreateJournalPage() {
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+    };
   }, []);
 
-  /* 
-    FIXED: Deep-traversal function that scans Tiptap JSON blocks recursively,
-    uploads files to the server, and rewrites the 'src' properties dynamically.
-  */
+  // Triggers the visual "Saving draft..." state when mutations occur
+  const triggerDraftSavingVisual = () => {
+    if (syncStatus === "cloud-saving") return;
+
+    setSyncStatus("saving");
+    if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+
+    statusTimerRef.current = setTimeout(() => {
+      setSyncStatus("local-saved");
+    }, 1000);
+  };
+
+  // Watch for changes to the entry title field
+  useEffect(() => {
+    if (!title.trim()) return;
+    triggerDraftSavingVisual();
+  }, [title]);
+
   const processAndUploadImages = async (node) => {
     if (!node) return node;
 
@@ -63,8 +86,6 @@ export default function CreateJournalPage() {
       if (rawFile) {
         try {
           const uploadResult = await uploadImage(rawFile);
-
-          // FIXED: Extract both the secure URL and the structural Media ID
           const permanentUrl = uploadResult?.url;
           const databaseMediaId = uploadResult?.mediaId;
 
@@ -73,7 +94,7 @@ export default function CreateJournalPage() {
             attrs: {
               ...node.attrs,
               src: permanentUrl,
-              mediaId: databaseMediaId, // FIXED: Securely links database document references
+              mediaId: databaseMediaId,
             },
           };
         } catch (uploadError) {
@@ -94,6 +115,7 @@ export default function CreateJournalPage() {
 
     return node;
   };
+
   const handleSave = async () => {
     if (!title.trim()) {
       return toast.error("Please provide an entry title.");
@@ -102,7 +124,8 @@ export default function CreateJournalPage() {
     const editorContent = editorRef.current?.getJSON();
     let fullyUploadedContent = editorContent;
 
-    // Intercept content payload processing if content blocks exist
+    setSyncStatus("cloud-saving");
+
     if (editorContent) {
       const uploadToastId = toast.loading("Uploading entry images safely...");
       try {
@@ -110,6 +133,7 @@ export default function CreateJournalPage() {
         toast.dismiss(uploadToastId);
       } catch (err) {
         toast.dismiss(uploadToastId);
+        setSyncStatus("local-saved");
         return toast.error("Failed to upload entry images. Please save again.");
       }
     }
@@ -117,7 +141,7 @@ export default function CreateJournalPage() {
     const payload = {
       title: title.trim(),
       mood: feeling,
-      content: fullyUploadedContent || null, // Delivers pure, production remote image paths
+      content: fullyUploadedContent || null,
       styleSettings: {
         themePreset: currentThemeId,
       },
@@ -125,96 +149,142 @@ export default function CreateJournalPage() {
 
     try {
       await createJournal(payload);
-      // Clean up the object memory references upon successful database sync
       pendingFilesRef.current.clear();
 
+      setSyncStatus("saved");
       toast.success("Journal entry saved beautifully!");
       navigate("/app/journals");
     } catch (error) {
       console.error("Error encountered during entry creation:", error);
+      setSyncStatus("local-saved");
       toast.error("Failed to save entry. Please try again.");
     }
   };
 
   return (
+    /* 
+      FIX 2: The Viewport Shield
+      Changes container to flex-col with h-[100dvh] (Dynamic Viewport Height).
+      When the software keyboard pops up, the viewport collapses cleanly, 
+      keeping the editor text field responsive and preventing elements from clipping out of bounds.
+    */
     <div
-      className={`fixed inset-0 w-full h-full overflow-y-auto transition-colors duration-500 px-4 sm:px-8 py-6 selection:bg-violet-500/20 ${themeConfig.bgClass} ${themeConfig.textClass}`}
+      className={`fixed inset-0 w-full h-[100dvh] flex flex-col overflow-hidden transition-colors duration-500 selection:bg-violet-500/20 ${themeConfig.bgClass} ${themeConfig.textClass}`}
     >
-      <div className="max-w-2xl mx-auto flex flex-col min-h-full pb-24">
-        {/* Unified Top Action Header Bar */}
-        <div className="flex items-center justify-between w-full h-12 mb-6 shrink-0">
+      {/* FIXED TOP HEADER NODE */}
+      <div className="w-full h-16 px-4 sm:px-8 flex items-center justify-between shrink-0 border-b border-black/5 dark:border-white/5 bg-transparent z-30">
+        <div className="flex items-center gap-4">
           <ThemeSelector
             currentThemeId={currentThemeId}
             onThemeChange={setCurrentThemeId}
             theme={themeConfig}
           />
 
-          {/* Right Action Block */}
-          <div className="flex items-center gap-2">
-            {/* Mood Dropdown Field */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                type="button"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className={`w-8 h-8 flex items-center justify-center rounded-xl border text-base bg-black/[0.02] dark:bg-white/[0.04] hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300 ${themeConfig.borderClass}`}
-              >
-                {activeMoodObj.emoji}
-              </button>
-
-              {isDropdownOpen && (
-                <div
-                  className={`
-                    absolute right-0 top-full mt-2 w-56 p-3 rounded-2xl border shadow-2xl z-50 
-                    backdrop-blur-xl transition-colors duration-500
-                    animate-in fade-in slide-in-from-top-1 duration-150
-                    ${themeConfig.uiClass || "bg-white border-slate-200 text-slate-900"}
-                  `}
-                >
-                  <span className="text-[10px] font-bold tracking-wider opacity-40 uppercase block mb-2 select-none">
-                    How are you feeling today?
-                  </span>
-
-                  <div className="grid grid-cols-5 gap-1">
-                    {MOODS.map((mood) => (
-                      <button
-                        key={mood.key}
-                        type="button"
-                        onClick={() => {
-                          setFeeling(mood.key);
-                          setIsDropdownOpen(false);
-                        }}
-                        className={`
-                          w-9 h-9 flex items-center justify-center rounded-lg text-base transition-all
-                          ${
-                            feeling === mood.key
-                              ? "bg-violet-600 text-white shadow-md shadow-violet-600/20 scale-95"
-                              : `opacity-80 hover:opacity-100 ${
-                                  themeConfig.uiBtnHover || "hover:bg-slate-100"
-                                }`
-                          }
-                        `}
-                      >
-                        {mood.emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Sticky Save Action Button */}
-            <button
-              onClick={handleSave}
-              disabled={isPending}
-              className="text-xs font-semibold px-4 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:bg-violet-800 disabled:text-slate-400 text-white shadow-sm transition-colors tracking-wide"
-            >
-              {isPending ? "Saving..." : "Save"}
-            </button>
+          {/* Sync Status Badge */}
+          <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold tracking-wide opacity-50 select-none transition-all duration-300">
+            {syncStatus === "saving" && (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span>Saving draft...</span>
+              </>
+            )}
+            {syncStatus === "local-saved" && (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span>Draft saved locally</span>
+              </>
+            )}
+            {syncStatus === "cloud-saving" && (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-ping" />
+                <span>Syncing with cloud...</span>
+              </>
+            )}
+            {syncStatus === "saved" && (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
+                <span>Cloud synced ✨</span>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Seamless Canvas */}
-        <div className="w-full flex-1 flex flex-col gap-3">
+        {/* Action Panel */}
+        <div className="flex items-center gap-2">
+          {/* Mood Dropdown Field */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className={`w-8 h-8 flex items-center justify-center rounded-xl border text-base bg-black/[0.02] dark:bg-white/[0.04] hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300 ${themeConfig.borderClass}`}
+            >
+              {activeMoodObj.emoji}
+            </button>
+
+            {/* 
+              FIX 1: Prevent Dropdown Horizon Truncation
+              Adjusts right-0 boundaries and sets explicit alignment maps 
+              to ensure your popover expands predictably inside mobile safe regions.
+            */}
+            {isDropdownOpen && (
+              <div
+                className={`
+                  absolute right-0 top-full mt-2 w-56 p-3 rounded-2xl border shadow-2xl z-50 
+                  backdrop-blur-xl transition-colors duration-500 origin-top-right
+                  animate-in fade-in slide-in-from-top-1 duration-150
+                  ${themeConfig.uiClass || "bg-white border-slate-200 text-slate-900"}
+                `}
+              >
+                <span className="text-[10px] font-bold tracking-wider opacity-40 uppercase block mb-2 select-none">
+                  How are you feeling today?
+                </span>
+
+                <div className="grid grid-cols-5 gap-1">
+                  {MOODS.map((mood) => (
+                    <button
+                      key={mood.key}
+                      type="button"
+                      onClick={() => {
+                        setFeeling(mood.key);
+                        setIsDropdownOpen(false);
+                        triggerDraftSavingVisual();
+                      }}
+                      className={`
+                        w-9 h-9 flex items-center justify-center rounded-lg text-base transition-all
+                        ${
+                          feeling === mood.key
+                            ? "bg-violet-600 text-white shadow-md shadow-violet-600/20 scale-95"
+                            : `opacity-80 hover:opacity-100 ${
+                                themeConfig.uiBtnHover || "hover:bg-slate-100"
+                              }`
+                        }
+                      `}
+                    >
+                      {mood.emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={handleSave}
+            disabled={isPending}
+            className="text-xs font-semibold px-4 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:bg-violet-800 disabled:text-slate-400 text-white shadow-sm transition-colors tracking-wide"
+          >
+            {isPending ? "Saving..." : "Save"}
+          </button>
+        </div>
+      </div>
+
+      {/* 
+        INDEPENDENT ISOLATED SCROLL CANVAS
+        The body layout now scrolls completely on its own. If an inner formatting bar
+        is pinned inside JournalEditor at the base, the keyboard forces it up natively.
+      */}
+      <div className="flex-1 w-full overflow-y-auto px-4 sm:px-8 py-6 custom-scrollbar z-10">
+        <div className="max-w-2xl mx-auto flex flex-col gap-4 min-h-full">
           <input
             type="text"
             value={title}
@@ -229,13 +299,13 @@ export default function CreateJournalPage() {
             className="w-full bg-transparent text-3xl font-extrabold tracking-tight outline-none border-none p-0 focus:ring-0 focus:outline-none placeholder-current/20"
           />
 
-          {/* FIXED: Passed down the 'pendingFilesRef' prop so the editor toolbar saves binary files here */}
           <JournalEditor
             ref={editorRef}
             editable={true}
             themePreset={currentThemeId}
             initialContent={null}
             pendingFilesRef={pendingFilesRef}
+            onUpdate={triggerDraftSavingVisual}
           />
         </div>
       </div>

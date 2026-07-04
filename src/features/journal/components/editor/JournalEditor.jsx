@@ -8,12 +8,67 @@ import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
 import TiptapCharacterCount from "@tiptap/extension-character-count";
+import Dropcursor from "@tiptap/extension-dropcursor"; // NEW: Premium visual drag placement line
 import { Mark } from "@tiptap/core";
+import { toast } from "react-hot-toast";
 
 import EditorToolbar from "./EditorToolbar";
 import { InlineEmoji } from "./extensions/InlineEmoji";
 import { ExtendedImage } from "../../utils/ExtendedImage";
 import { getThemeConfig } from "../../utils/journalThemes";
+
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB limit
+
+// Built-in compression engine to clean files incoming via drag/paste
+const compressImageFile = (file, maxWidth = 1400, quality = 0.75) => {
+  return new Promise((resolve, reject) => {
+    if (file.type === "image/gif") return resolve(file);
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob)
+              return reject(new Error("Canvas blob conversion failed"));
+            const compressedFile = new File(
+              [blob],
+              file.name.replace(/\.[^/.]+$/, "") + ".jpg",
+              {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              }
+            );
+            resolve(compressedFile);
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
 
 const FontSize = Mark.create({
   name: "fontSize",
@@ -41,6 +96,7 @@ const JournalEditor = forwardRef(
       initialContent,
       editable = true,
       onChange,
+      onUpdate, // NEW: Accepts the visual sync status update context trigger
       themePreset = "warm-parchment",
       pendingFilesRef,
     },
@@ -62,6 +118,10 @@ const JournalEditor = forwardRef(
         TextAlign.configure({ types: ["heading", "paragraph"] }),
         ExtendedImage,
         InlineEmoji,
+        Dropcursor.configure({
+          color: "#8b5cf6", // Beautiful violet dropcursor guide color
+          width: 2,
+        }),
       ],
       content: initialContent,
       editable,
@@ -70,10 +130,90 @@ const JournalEditor = forwardRef(
           class:
             "w-full min-w-full block min-h-[250px] py-1 outline-none prose max-w-none focus:ring-0 focus:outline-none text-base text-current",
         },
+
+        // NEW: Feature 2 - Direct Desktop Image Drag & Drop Interceptor
+        handleDrop(view, event, slice, moved) {
+          if (!moved && event.dataTransfer?.files?.length > 0) {
+            const file = event.dataTransfer.files[0];
+            if (ALLOWED_TYPES.includes(file.type)) {
+              event.preventDefault();
+              insertAndProcessMedia(file);
+              return true; // Successfully intercepted drop handler
+            }
+          }
+          return false;
+        },
+
+        // NEW: Feature 2 - Direct Clipboard Paste Image Interceptor (Ctrl+V)
+        handlePaste(view, event, slice) {
+          if (event.clipboardData?.files?.length > 0) {
+            const file = event.clipboardData.files[0];
+            if (ALLOWED_TYPES.includes(file.type)) {
+              event.preventDefault();
+              insertAndProcessMedia(file);
+              return true; // Successfully intercepted paste handler
+            }
+          }
+          return false;
+        },
       },
     });
 
     useImperativeHandle(ref, () => editor, [editor]);
+
+    // NEW: Central processing loop for Dragged or Pasted files inside the canvas boundary
+    const insertAndProcessMedia = async (file) => {
+      let processedFile = file;
+
+      if (file.type !== "image/gif") {
+        const compressToastId = toast.loading(
+          "Compressing asset for optimal performance..."
+        );
+        try {
+          processedFile = await compressImageFile(file);
+          toast.dismiss(compressToastId);
+        } catch (err) {
+          toast.dismiss(compressToastId);
+          console.error(
+            "Drop compression bypassed; falling back to original source file:",
+            err
+          );
+        }
+      }
+
+      if (processedFile.size > MAX_FILE_SIZE_BYTES) {
+        return toast.error("File is too large. Maximum size allowed is 10MB.");
+      }
+
+      const blobUrl = URL.createObjectURL(processedFile);
+      if (pendingFilesRef?.current) {
+        pendingFilesRef.current.set(blobUrl, processedFile);
+      }
+
+      // Drop file node exactly where the cursor focuses
+      editor
+        .chain()
+        .focus()
+        .setImage({ src: blobUrl, mediaId: null })
+        .createParagraphNear()
+        .focus()
+        .run();
+    };
+
+    // NEW: Listens for user mutations to propagate changes up to the sync status indicator
+    useEffect(() => {
+      if (!editor) return;
+
+      const handleUpdate = () => {
+        if (onUpdate) onUpdate();
+        if (onChange) onChange(editor.getJSON());
+      };
+
+      editor.on("update", handleUpdate);
+      return () => {
+        editor.off("update", handleUpdate);
+      };
+    }, [editor, onUpdate, onChange]);
 
     useEffect(() => {
       if (!editor || !initialContent) return;
@@ -101,10 +241,7 @@ const JournalEditor = forwardRef(
           </div>
         )}
 
-        {/* 
-          FIXED: Streamlined Contextual Bubble Menu.
-          Only contains a clean, expressive trash action to purge the image element.
-        */}
+        {/* Streamlined Contextual Bubble Menu */}
         {editable && editor && (
           <BubbleMenu
             editor={editor}

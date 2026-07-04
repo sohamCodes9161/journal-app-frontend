@@ -14,7 +14,6 @@ import {
 } from "../utils/journalDraftStorage";
 import { JOURNAL_THEMES } from "../utils/journalThemes";
 import { JournalThemeProvider } from "../context/JournalThemeContext";
-// FIXED: Import your upload image service method
 import { uploadImage } from "../api/uploadApi";
 
 export default function JournalDetailPage() {
@@ -22,7 +21,7 @@ export default function JournalDetailPage() {
   const { journalId } = useParams();
   const editorRef = useRef(null);
 
-  // FIXED: Instantiate the pending files map to track uploaded local file binaries during edits
+  // Tracks uploaded local file binaries during edits
   const pendingFilesRef = useRef(new Map());
 
   const { data: journal, isLoading, isError } = useJournal(journalId);
@@ -35,6 +34,10 @@ export default function JournalDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState("warm-parchment");
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // NEW: Tracks local draft state versions & cloud synchronization progress
+  const [syncStatus, setSyncStatus] = useState("saved");
+  const [contentVersion, setContentVersion] = useState(0);
 
   useEffect(() => {
     if (!journal || isInitialized) return;
@@ -56,25 +59,28 @@ export default function JournalDetailPage() {
     setIsInitialized(true);
   }, [journal, journalId, isInitialized]);
 
+  // NEW: Refactored draft effect that actively syncs status indicators while typing
   useEffect(() => {
     if (!isEditing || !isInitialized) return;
+
+    if (syncStatus !== "cloud-saving") {
+      setSyncStatus("saving");
+    }
 
     const timeout = setTimeout(() => {
       const content = editorRef.current?.getJSON();
       if (!content) return;
+
       saveJournalDraft({ journalId, title, content });
+      setSyncStatus("local-saved");
     }, 1000);
 
     return () => clearTimeout(timeout);
-  }, [title, isEditing, journalId, isInitialized]);
+  }, [title, contentVersion, isEditing, journalId, isInitialized]);
 
   const themeConfig =
     JOURNAL_THEMES.find((t) => t.id === selectedTheme) || JOURNAL_THEMES[0];
 
-  /* 
-    FIXED: Deep-traversal parser to scan and substitute newly edited blob objects
-    with remote server URL endpoints before database mutations execute.
-  */
   const processAndUploadImages = async (node) => {
     if (!node) return node;
 
@@ -85,8 +91,6 @@ export default function JournalDetailPage() {
       if (rawFile) {
         try {
           const uploadResult = await uploadImage(rawFile);
-
-          // FIXED: Extract both the secure URL and the structural Media ID
           const permanentUrl = uploadResult?.url;
           const databaseMediaId = uploadResult?.mediaId;
 
@@ -95,7 +99,7 @@ export default function JournalDetailPage() {
             attrs: {
               ...node.attrs,
               src: permanentUrl,
-              mediaId: databaseMediaId, // FIXED: Securely links database document references
+              mediaId: databaseMediaId,
             },
           };
         } catch (uploadError) {
@@ -116,6 +120,7 @@ export default function JournalDetailPage() {
 
     return node;
   };
+
   async function handleSave() {
     try {
       const content = editorRef.current?.getJSON();
@@ -123,7 +128,9 @@ export default function JournalDetailPage() {
 
       let fullyUploadedContent = content;
 
-      // Intercept data submission and handle uploads if content holds active blobs
+      // Set state to cloud syncing phase
+      setSyncStatus("cloud-saving");
+
       const uploadToastId = toast.loading(
         "Uploading new entry images safely..."
       );
@@ -132,6 +139,7 @@ export default function JournalDetailPage() {
         toast.dismiss(uploadToastId);
       } catch (err) {
         toast.dismiss(uploadToastId);
+        setSyncStatus("local-saved");
         return toast.error("Failed to upload entry images. Please save again.");
       }
 
@@ -139,17 +147,19 @@ export default function JournalDetailPage() {
         journalId,
         data: {
           title: title.trim(),
-          content: fullyUploadedContent, // FIXED: Sends safe, permanent cloud urls
+          content: fullyUploadedContent,
           mood,
           styleSettings: { themePreset: selectedTheme },
         },
       });
 
-      pendingFilesRef.current.clear(); // Empty the temporary layout mapping cache
+      pendingFilesRef.current.clear();
       clearJournalDraft(journalId);
+      setSyncStatus("saved");
       toast.success("Journal saved successfully ✨");
       setIsEditing(false);
     } catch (error) {
+      setSyncStatus("local-saved");
       toast.error("Failed to save journal");
     }
   }
@@ -189,21 +199,53 @@ export default function JournalDetailPage() {
         className={`fixed inset-0 w-full h-full overflow-y-auto transition-colors duration-500 px-4 sm:px-8 py-6 selection:bg-violet-500/20 ${themeConfig.bgClass} ${themeConfig.textClass}`}
       >
         <div className="max-w-2xl mx-auto flex flex-col min-h-full pb-24">
-          {/* Unified Action Header */}
+          {/* Unified Action Header Bar */}
           <div className="flex items-center justify-between w-full h-12 mb-6 shrink-0">
-            {isEditing ? (
-              <ThemeSelector
-                currentThemeId={selectedTheme}
-                onThemeChange={setSelectedTheme}
-                theme={themeConfig}
-              />
-            ) : (
-              <div
-                className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-bold tracking-wide uppercase bg-black/5 dark:bg-white/10 ${themeConfig.textClass}`}
-              >
-                <span className="opacity-60 mr-1">Mood:</span> {mood}
-              </div>
-            )}
+            <div className="flex items-center gap-4">
+              {isEditing ? (
+                <ThemeSelector
+                  currentThemeId={selectedTheme}
+                  onThemeChange={setSelectedTheme}
+                  theme={themeConfig}
+                />
+              ) : (
+                <div
+                  className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-bold tracking-wide uppercase bg-black/5 dark:bg-white/10 ${themeConfig.textClass}`}
+                >
+                  <span className="opacity-60 mr-1">Mood:</span> {mood}
+                </div>
+              )}
+
+              {/* NEW: Live Visual Sync Engine Dot Display */}
+              {isEditing && (
+                <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold tracking-wide opacity-50 select-none transition-all duration-300">
+                  {syncStatus === "saving" && (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                      <span>Saving draft...</span>
+                    </>
+                  )}
+                  {syncStatus === "local-saved" && (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span>Draft saved locally</span>
+                    </>
+                  )}
+                  {syncStatus === "cloud-saving" && (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-ping" />
+                      <span>Syncing with cloud...</span>
+                    </>
+                  )}
+                  {syncStatus === "saved" && (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
+                      <span>Cloud synced ✨</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Header Operations Control Block */}
             <div className="flex items-center gap-2">
@@ -213,6 +255,7 @@ export default function JournalDetailPage() {
                     onClick={() => {
                       pendingFilesRef.current.clear();
                       setIsEditing(false);
+                      setSyncStatus("saved");
                     }}
                     className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                   >
@@ -266,12 +309,12 @@ export default function JournalDetailPage() {
               </h1>
             )}
 
-            {/* FIXED: Passed the memory cache reference down to power the image insert tool inputs seamlessly */}
+            {/* NEW: Passed content updates up into the version ticker to trigger state updates */}
             <JournalEditor
               ref={editorRef}
               initialContent={initialEditorContent}
               editable={isEditing}
-              onChange={() => {}}
+              onUpdate={() => setContentVersion((v) => v + 1)}
               themePreset={selectedTheme}
               pendingFilesRef={pendingFilesRef}
             />
