@@ -21,13 +21,8 @@ const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
-/* 
-  FIXED: Added utility function to physically compress image files down using HTML5 canvas.
-  This scales down excessive dimensions and optimizes quality to significantly lower file sizes.
-*/
 const compressImageFile = (file, maxWidth = 1400, quality = 0.75) => {
   return new Promise((resolve, reject) => {
-    // Skip canvas compression for animated GIFs to preserve frames
     if (file.type === "image/gif") {
       return resolve(file);
     }
@@ -42,7 +37,6 @@ const compressImageFile = (file, maxWidth = 1400, quality = 0.75) => {
         let width = img.width;
         let height = img.height;
 
-        // Downscale matching target maximum dimension boundaries
         if (width > maxWidth) {
           height = Math.round((height * maxWidth) / width);
           width = maxWidth;
@@ -54,7 +48,6 @@ const compressImageFile = (file, maxWidth = 1400, quality = 0.75) => {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Convert the rendered canvas frame back to a lightweight JPEG blob
         canvas.toBlob(
           (blob) => {
             if (!blob) {
@@ -119,7 +112,10 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
   const fileInputRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeCategory, setActiveCategory] = useState("faces");
+
+  // Dual-Ref Architecture to isolate click-away triggers safely
   const pickerRef = useRef(null);
+  const triggerRef = useRef(null);
   const scrollContainerRef = useRef(null);
 
   const [, setTick] = useState(0);
@@ -132,7 +128,13 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (pickerRef.current && !pickerRef.current.contains(event.target)) {
+      const clickedPicker =
+        pickerRef.current && pickerRef.current.contains(event.target);
+      const clickedTrigger =
+        triggerRef.current && triggerRef.current.contains(event.target);
+
+      // Only collapse if the user clicked entirely outside both the button and popover window
+      if (!clickedPicker && !clickedTrigger) {
         setShowEmojiPicker(false);
       }
     }
@@ -177,7 +179,6 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
       .run();
   };
 
-  // FIXED: Integrated client-side canvas processing logic right inside the handler flow
   async function handleFileChange(event) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -190,7 +191,6 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
 
     let processedFile = file;
 
-    // Trigger physical binary compression for large, non-GIF images
     if (file.type !== "image/gif") {
       const compressToastId = toast.loading(
         "Compressing image for optimal cloud storage..."
@@ -207,7 +207,6 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
       }
     }
 
-    // Guard check against the final optimized file capacity limit
     if (processedFile.size > MAX_FILE_SIZE_BYTES) {
       toast.error(
         `File is too large. Maximum size allowed is ${MAX_FILE_SIZE_MB}MB.`
@@ -233,7 +232,7 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
   }
 
   return (
-    <div className="flex flex-row items-center justify-start gap-2 w-full">
+    <div className="flex flex-row items-center justify-start gap-2 w-full relative">
       <div
         className={`
           flex items-center gap-0.5 border rounded-xl p-0.5 sm:p-1
@@ -259,6 +258,27 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
         </ToolbarButton>
 
         <ToolbarDivider theme={theme} />
+
+        {/* POSITION 3: EMOJI PICKER CORE TRIGGER */}
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          className={`
+            w-7 h-7 sm:w-auto sm:px-3 sm:h-8 flex items-center justify-center sm:gap-1.5 rounded-lg text-xs font-semibold
+            transition-all duration-300 border shrink-0
+            ${
+              showEmojiPicker
+                ? "bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-600/15"
+                : `${theme?.uiClass || "bg-slate-50 border-slate-200 text-slate-700"} ${
+                    theme?.uiBtnHover || "hover:bg-slate-100"
+                  }`
+            }
+          `}
+        >
+          <span>🥰</span>
+          <span className="hidden sm:inline">Emojis</span>
+        </button>
 
         <ToolbarButton
           onClick={() =>
@@ -363,113 +383,97 @@ export default function EditorToolbar({ editor, pendingFilesRef, theme }) {
         />
       </div>
 
-      <div className="relative shrink-0" ref={pickerRef}>
-        <button
-          type="button"
-          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+      {/* 
+        FIXED CONTAINER ESCAPE PORTAL:
+        Placed entirely outside the overflow-x-auto boundary row. 
+        Opens upwards over the workspace text smoothly without viewport clipping.
+      */}
+      {showEmojiPicker && (
+        <div
+          ref={pickerRef}
           className={`
-            w-7 h-7 sm:w-auto sm:px-3 sm:h-8 flex items-center justify-center sm:gap-1.5 rounded-xl text-xs font-semibold
-            transition-all duration-300 border
-            ${
-              showEmojiPicker
-                ? "bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-600/15"
-                : `${theme?.uiClass || "bg-slate-50 border-slate-200 text-slate-700"} ${
-                    theme?.uiBtnHover || "hover:bg-slate-100"
-                  }`
-            }
+            absolute left-4 sm:left-16 bottom-full mb-3
+            z-50 w-72 p-3 rounded-2xl border shadow-2xl
+            flex flex-col gap-2 max-w-[calc(100vw-2rem)]
+            animate-in fade-in slide-in-from-bottom-2 duration-150
+            transition-colors duration-500
+            ${theme?.uiClass || "bg-white border-slate-200 text-slate-900"}
           `}
         >
-          <span>🥰</span>
-          <span className="hidden sm:inline">Emojis</span>
-        </button>
-
-        {showEmojiPicker && (
           <div
-            className={`
-              absolute left-0 sm:left-auto sm:right-0 bottom-full sm:bottom-auto sm:top-full
-              mb-2 sm:mb-0 sm:mt-2
-              z-50 w-72 p-3 rounded-2xl border shadow-2xl
-              flex flex-col gap-2
-              animate-in fade-in slide-in-from-bottom-2 sm:slide-in-from-top-2 duration-150
-              transition-colors duration-500
-              ${theme?.uiClass || "bg-white border-slate-200 text-slate-900"}
-            `}
+            className={`flex gap-1 border-b pb-1.5 overflow-x-auto scrollbar-none ${
+              theme?.borderClass || "border-slate-100"
+            }`}
           >
-            <div
-              className={`flex gap-1 border-b pb-1.5 overflow-x-auto scrollbar-none ${
-                theme?.borderClass || "border-slate-100"
-              }`}
-            >
-              {EMOJI_CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => handleTabClick(cat.id)}
-                  className={`px-2 py-1 text-[10px] font-bold rounded-md whitespace-nowrap transition-all ${
-                    activeCategory === cat.id
-                      ? theme?.uiBtnActive || "bg-violet-600 text-white"
-                      : `${theme?.mutedClass || "text-slate-500"} ${
-                          theme?.uiBtnHover || "hover:bg-slate-100"
-                        }`
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-
-            <div
-              ref={scrollContainerRef}
-              onScroll={handleScroll}
-              className="flex flex-col gap-3 max-h-48 overflow-y-auto pr-1 scroll-smooth"
-              style={{ scrollbarWidth: "thin" }}
-            >
-              {EMOJI_CATEGORIES.map((category) => {
-                const emojisInSection = CUSTOM_EMOJIS.filter(
-                  (e) => e.category === category.id
-                );
-                return (
-                  <div key={category.id} id={`emoji-section-${category.id}`}>
-                    <div
-                      className={`text-[9px] uppercase tracking-wider font-extrabold mb-1 py-0.5 ${
-                        theme?.isDark ? "text-violet-400" : "text-violet-600"
-                      }`}
-                    >
-                      {category.label}
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {emojisInSection.map((emoji) => (
-                        <button
-                          key={emoji.name}
-                          type="button"
-                          onClick={() => handleSelectEmoji(emoji)}
-                          className={`
-                            p-1 rounded-lg border active:scale-90 transition-all
-                            flex items-center justify-center
-                            ${
-                              theme?.isDark
-                                ? "bg-white/[0.01] border-white/5 hover:bg-white/10"
-                                : `bg-white/50 border-black/5 hover:bg-white/80`
-                            }
-                          `}
-                          title={emoji.name}
-                        >
-                          <img
-                            src={emoji.url}
-                            alt={emoji.name}
-                            className="w-7 h-7 object-contain pointer-events-none"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            {EMOJI_CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => handleTabClick(cat.id)}
+                className={`px-2 py-1 text-[10px] font-bold rounded-md whitespace-nowrap transition-all ${
+                  activeCategory === cat.id
+                    ? theme?.uiBtnActive || "bg-violet-600 text-white"
+                    : `${theme?.mutedClass || "text-slate-500"} ${
+                        theme?.uiBtnHover || "hover:bg-slate-100"
+                      }`
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
           </div>
-        )}
-      </div>
+
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="flex flex-col gap-3 max-h-48 overflow-y-auto pr-1 scroll-smooth"
+            style={{ scrollbarWidth: "thin" }}
+          >
+            {EMOJI_CATEGORIES.map((category) => {
+              const emojisInSection = CUSTOM_EMOJIS.filter(
+                (e) => e.category === category.id
+              );
+              return (
+                <div key={category.id} id={`emoji-section-${category.id}`}>
+                  <div
+                    className={`text-[9px] uppercase tracking-wider font-extrabold mb-1 py-0.5 ${
+                      theme?.isDark ? "text-violet-400" : "text-violet-600"
+                    }`}
+                  >
+                    {category.label}
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {emojisInSection.map((emoji) => (
+                      <button
+                        key={emoji.name}
+                        type="button"
+                        onClick={() => handleSelectEmoji(emoji)}
+                        className={`
+                          p-1 rounded-lg border active:scale-90 transition-all
+                          flex items-center justify-center
+                          ${
+                            theme?.isDark
+                              ? "bg-white/[0.01] border-white/5 hover:bg-white/10"
+                              : `bg-white/50 border-black/5 hover:bg-white/80`
+                          }
+                        `}
+                        title={emoji.name}
+                      >
+                        <img
+                          src={emoji.url}
+                          alt={emoji.name}
+                          className="w-7 h-7 object-contain pointer-events-none"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
