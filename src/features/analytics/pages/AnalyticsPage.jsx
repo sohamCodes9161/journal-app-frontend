@@ -1,182 +1,138 @@
+// src/features/analytics/pages/AnalyticsPage.jsx
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { useAnalytics } from "../hooks/useAnalytics";
-
-const MOOD_EMOJIS = {
-  happy: "😊",
-  sad: "😢",
-  neutral: "😐",
-  anxious: "😰",
-  excited: "🤩",
-  angry: "😡",
-  grateful: "🙏",
-  tired: "🥱",
-  reflective: "🧘",
-};
+import { AnalyticsSummary } from "../components/AnalyticsSummary";
+import { SpatialBurden } from "../components/SpatialBurden";
+import { TimelineMatrix } from "../components/TimelineMatrix";
 
 export const AnalyticsPage = () => {
   const { range, setRange, data, isLoading, error } = useAnalytics("week");
-  const navigate = useNavigate();
 
   if (isLoading) {
     return (
-      <div className="p-8 text-center font-mono text-xs text-zinc-500 uppercase tracking-widest">
-        Loading metrics...
+      <div className="flex min-h-[60vh] flex-col items-center justify-center space-y-4">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-700 border-t-violet-500" />
+        <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 animate-pulse">
+          Synthesizing performance models...
+        </p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 rounded-lg bg-rose-950/20 border border-rose-900/30 font-mono text-xs text-rose-400">
-        {error}
+      <div className="max-w-md mx-auto mt-12 p-4 rounded-xl bg-rose-950/20 border border-rose-900/30 text-center">
+        <p className="font-mono text-xs text-rose-400">{error}</p>
       </div>
     );
   }
 
   const { summary, mindset, spatialDistribution, timeline } = data;
 
-  // Click handler to redirect user to a specific day's journal entry
-  const handleDayClick = (day) => {
-    if (day.hasJournal) {
-      // Redirects to your journal page with a date query parameter
-      navigate(`/app/journals?date=${day.date}`);
-    }
-  };
-
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-10 text-zinc-100 antialiased">
+    <div className="max-w-5xl mx-auto px-4 py-8 space-y-8 text-zinc-100 antialiased selection:bg-violet-500/30">
       {/* HEADER CONTROLS */}
-      <div className="flex items-center justify-between border-b border-zinc-800 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/60 pb-6">
         <div>
-          <h1 className="text-lg font-semibold tracking-tight">
-            Workspace Analytics
+          <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-zinc-100 via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
+            Workspace Insights
           </h1>
-          <p className="text-xs text-zinc-500">
-            Performance tracking and reflection insights.
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Behavioral analysis, execution velocity, and mental resonance
+            tracking.
           </p>
         </div>
 
-        <div className="flex items-center bg-zinc-900 border border-zinc-800 p-1 rounded-lg">
+        {/* Premium Segmented Controls */}
+        <div className="flex items-center self-start sm:self-center bg-zinc-900/90 border border-zinc-800 p-1 rounded-xl shadow-inner backdrop-blur-md">
           <button
             onClick={() => setRange("week")}
-            className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${range === "week" ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"}`}
+            className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
+              range === "week"
+                ? "bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/50"
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
           >
             7 Days
           </button>
           <button
             onClick={() => setRange("month")}
-            className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${range === "month" ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"}`}
+            className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
+              range === "month"
+                ? "bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/50"
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
           >
             30 Days
           </button>
         </div>
       </div>
 
-      {/* SECTION 1: INTENTIONS & TASKS ANALYSIS */}
-      <div className="space-y-4">
-        <h2 className="text-xs font-mono uppercase tracking-widest text-zinc-500 font-semibold">
-          Task Metrics
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-4 bg-zinc-900 border border-zinc-800/80 rounded-xl">
-            <span className="text-[11px] text-zinc-400 block font-medium">
-              Completion Rate
+      {/* CORE PERFORMANCE METRICS MODULE */}
+      <AnalyticsSummary summary={summary} mindset={mindset} />
+
+      {/* GRID LAYOUT: COGNITIVE BURDEN & ANALYTICS TREND LINES */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1">
+          <SpatialBurden distribution={spatialDistribution} />
+        </div>
+
+        {/* Dynamic Visual Distribution Canvas */}
+        <div className="lg:col-span-2 p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 backdrop-blur-sm flex flex-col justify-between min-h-[220px]">
+          <div>
+            <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 block font-bold">
+              Execution Velocity Map
             </span>
-            <span className="text-2xl font-semibold text-emerald-400 mt-1 block">
-              {summary.completionRate || 0}%
-            </span>
+            <p className="text-xs text-zinc-400 mt-1">
+              Visualizing task clearance throughput ratio relative to priority
+              focus targets.
+            </p>
           </div>
-          <div className="p-4 bg-zinc-900 border border-zinc-800/80 rounded-xl">
-            <span className="text-[11px] text-zinc-400 block font-medium">
-              North Star Focus
-            </span>
-            <span className="text-2xl font-semibold text-indigo-400 mt-1 block">
-              {summary.northStarSuccessRate}%
-            </span>
+
+          {/* Elegant SVG Native Trendline Visualization (Zero External Dependencies) */}
+          <div className="h-24 w-full mt-4 flex items-end relative px-2">
+            <svg
+              className="w-full h-full overflow-visible"
+              viewBox="0 0 100 30"
+              preserveAspectRatio="none"
+            >
+              <defs>
+                <linearGradient id="velocityGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.0" />
+                </linearGradient>
+              </defs>
+              {/* Dynamic background path area */}
+              <path
+                d={`M 0,30 L 0,${30 - (summary.completionRate || 40) / 4} Q 30,${30 - (summary.northStarSuccessRate || 50) / 4.5} 60,${25 - (summary.completionRate || 40) / 5} T 100,${30 - (summary.northStarSuccessRate || 50) / 3.8} L 100,30 Z`}
+                fill="url(#velocityGrad)"
+              />
+              {/* Sharp accent stroke line */}
+              <path
+                d={`M 0,${30 - (summary.completionRate || 40) / 4} Q 30,${30 - (summary.northStarSuccessRate || 50) / 4.5} 60,${25 - (summary.completionRate || 40) / 5} T 100,${30 - (summary.northStarSuccessRate || 50) / 3.8}`}
+                fill="none"
+                stroke="#a78bfa"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="absolute inset-0 flex justify-between pointer-events-none items-center opacity-10">
+              <div className="w-full h-[1px] bg-zinc-100" />
+            </div>
           </div>
-          <div className="p-4 bg-zinc-900 border border-zinc-800/80 rounded-xl">
-            <span className="text-[11px] text-zinc-400 block font-medium">
-              Avg. Task Lifespan
+
+          <div className="flex justify-between items-center text-[10px] font-mono text-zinc-500 pt-3 border-t border-zinc-800/50 mt-2">
+            <span>START OF PERIOD</span>
+            <span className="text-zinc-400 font-semibold text-xs">
+              Clearance Cap: {summary.completionRate || 0}%
             </span>
-            <span className="text-2xl font-semibold text-amber-400 mt-1 block">
-              {summary.avgTaskLifespanDays || 0}{" "}
-              <span className="text-xs text-zinc-500 font-normal">days</span>
-            </span>
-          </div>
-          <div className="p-4 bg-zinc-900 border border-zinc-800/80 rounded-xl">
-            <span className="text-[11px] text-zinc-400 block font-medium">
-              Pending Backlog
-            </span>
-            <span className="text-2xl font-semibold text-zinc-300 mt-1 block">
-              {spatialDistribution.today +
-                spatialDistribution.week +
-                spatialDistribution.later || 0}{" "}
-              <span className="text-xs text-zinc-500 font-normal">items</span>
-            </span>
+            <span>CURRENT HORIZON</span>
           </div>
         </div>
       </div>
 
-      {/* SECTION 2: JOURNAL & REFLECTION VISUAL ACTIVITY GRAPH */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-mono uppercase tracking-widest text-zinc-500 font-semibold">
-            Journal Activity & Moods
-          </h2>
-          <div className="text-xs text-zinc-400 font-medium">
-            Dominant Baseline:{" "}
-            <span className="text-indigo-400 capitalize font-semibold">
-              {mindset.dominantMood}
-            </span>
-          </div>
-        </div>
-
-        <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-xl">
-          {/* Calendar Heatmap Strip Layout */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
-            {timeline.map((day) => {
-              const parsedDate = new Date(day.date + "T00:00:00");
-              const dayLabel = parsedDate.toLocaleDateString("en-US", {
-                weekday: "short",
-                day: "numeric",
-              });
-
-              return (
-                <button
-                  key={day.date}
-                  disabled={!day.hasJournal}
-                  onClick={() => handleDayClick(day)}
-                  className={`p-3 rounded-lg border text-left flex flex-col justify-between min-h-[90px] transition-all ${
-                    day.hasJournal
-                      ? "bg-zinc-950 border-zinc-700 hover:border-zinc-500 cursor-pointer shadow-sm active:scale-[0.98]"
-                      : "bg-zinc-950/40 border-zinc-800/60 cursor-default opacity-50"
-                  }`}
-                >
-                  <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-tight block">
-                    {dayLabel}
-                  </span>
-
-                  {/* Visual Indicator Layer */}
-                  <div className="my-1.5 text-lg flex items-center justify-start min-h-[24px]">
-                    {day.hasJournal ? (
-                      MOOD_EMOJIS[day.mood] || "📝"
-                    ) : (
-                      <span className="w-1 h-1 rounded-full bg-zinc-800 ml-1" />
-                    )}
-                  </div>
-
-                  <span className="text-[9px] font-mono tracking-wide text-zinc-400 uppercase">
-                    {day.completedCount > 0
-                      ? `✓ ${day.completedCount} Tasks`
-                      : "0 Tasks"}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      {/* CONTINUOUS BEHAVIORAL ALIGNMENT GRID */}
+      <TimelineMatrix timeline={timeline} />
     </div>
   );
 };
