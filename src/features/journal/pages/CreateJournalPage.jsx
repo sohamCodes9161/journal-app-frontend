@@ -34,34 +34,10 @@ export default function CreateJournalPage() {
   const [currentThemeId, setCurrentThemeId] = useState("warm-parchment");
   const [syncStatus, setSyncStatus] = useState("saved");
 
-  // NEW: Dynamic visual viewport tracking state
-  const [visibleHeight, setVisibleHeight] = useState(window.innerHeight);
-
   const { mutateAsync: createJournal, isPending } = useCreateJournal();
 
   const activeMoodObj = MOODS.find((m) => m.key === feeling) || MOODS[2];
   const themeConfig = getThemeConfig(currentThemeId);
-
-  // NEW: Visual Viewport API Engine Listener
-  useEffect(() => {
-    if (!window.visualViewport) return;
-
-    const handleViewportChange = () => {
-      // Instantly grabs the exact pixel space available above the keyboard
-      setVisibleHeight(window.visualViewport.height);
-    };
-
-    window.visualViewport.addEventListener("resize", handleViewportChange);
-    window.visualViewport.addEventListener("scroll", handleViewportChange);
-
-    // Initial sync
-    handleViewportChange();
-
-    return () => {
-      window.visualViewport.removeEventListener("resize", handleViewportChange);
-      window.visualViewport.removeEventListener("scroll", handleViewportChange);
-    };
-  }, []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -169,8 +145,18 @@ export default function CreateJournalPage() {
       When the mobile keyboard shows up, the whole container collapses instantly.
     */
     <div
-      className={`fixed inset-x-0 top-0 w-full flex flex-col overflow-hidden transition-colors duration-500 selection:bg-violet-500/20 ${themeConfig.bgClass} ${themeConfig.textClass}`}
-      style={{ height: `${visibleHeight}px` }}
+      className={`
+fixed
+inset-0
+flex
+flex-col
+overflow-hidden
+${themeConfig.bgClass}
+${themeConfig.textClass}
+`}
+      style={{
+        height: "100dvh",
+      }}
     >
       {/* FIXED TOP HEADER */}
       <div className="w-full h-16 px-4 sm:px-8 flex items-center justify-between shrink-0 border-b border-black/5 dark:border-white/5 bg-transparent z-30">
@@ -272,8 +258,19 @@ export default function CreateJournalPage() {
       </div>
 
       {/* INDEPENDENT WORKSPACE WRAPPER */}
-      <div className="flex-1 w-full overflow-y-auto px-4 sm:px-8 py-6 custom-scrollbar z-10">
-        <div className="max-w-2xl mx-auto flex flex-col gap-4 min-h-full">
+      <div className="flex-1 flex flex-col min-h-0 px-4 sm:px-8 py-6">
+        <div
+          className="
+flex
+flex-col
+flex-1
+min-h-0
+max-w-2xl
+mx-auto
+w-full
+gap-4
+"
+        >
           <input
             type="text"
             value={title}
