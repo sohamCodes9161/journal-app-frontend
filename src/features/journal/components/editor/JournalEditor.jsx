@@ -229,7 +229,16 @@ const JournalEditor = forwardRef(
     if (!editor) return null;
 
     return (
-      <div className="w-full relative flex-1 flex flex-col">
+      <div
+        className="
+w-full
+flex-1
+min-h-0
+flex
+flex-col
+relative
+"
+      >
         {/* Desktop Inline Formatting Bar */}
         {editable && (
           <div className="hidden sm:block w-full pb-4">
@@ -284,28 +293,45 @@ const JournalEditor = forwardRef(
 
         {/* Text Area Content Focus Container */}
         <div
-          className="w-full flex-1 min-h-[400px] cursor-text pb-20"
+          className="
+flex-1
+min-h-0
+overflow-y-auto
+cursor-text
+pb-24
+"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               editor.commands.focus("end");
             }
           }}
         >
-          <EditorContent editor={editor} />
+          <EditorContent editor={editor} className="h-full" />
         </div>
 
         {/* Mobile Formatting Bottom Float Strip */}
+        {/* Mobile Toolbar */}
         {editable && (
           <div
-            className={`sm:hidden fixed bottom-0 left-0 right-0 z-40 p-3 pb-safe border-t backdrop-blur-md transition-colors duration-500 shadow-xl ${activeTheme.bgClass} ${activeTheme.borderClass}`}
+            className={`
+      sm:hidden
+      shrink-0
+      border-t
+      p-3
+      pb-safe
+      backdrop-blur-md
+      transition-colors
+      duration-500
+      shadow-xl
+      ${activeTheme.bgClass}
+      ${activeTheme.borderClass}
+    `}
           >
-            <div className="w-full">
-              <EditorToolbar
-                editor={editor}
-                pendingFilesRef={pendingFilesRef}
-                theme={activeTheme}
-              />
-            </div>
+            <EditorToolbar
+              editor={editor}
+              pendingFilesRef={pendingFilesRef}
+              theme={activeTheme}
+            />
           </div>
         )}
       </div>
