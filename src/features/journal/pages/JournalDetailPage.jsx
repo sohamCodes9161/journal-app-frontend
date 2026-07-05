@@ -196,128 +196,142 @@ export default function JournalDetailPage() {
   return (
     <JournalThemeProvider themePreset={selectedTheme}>
       <div
-        className={`fixed inset-0 w-full h-full overflow-y-auto transition-colors duration-500 px-4 sm:px-8 py-6 selection:bg-violet-500/20 ${themeConfig.bgClass} ${themeConfig.textClass}`}
+        className={`fixed inset-0 flex flex-col overflow-hidden transition-colors duration-500 ${themeConfig.bgClass} ${themeConfig.textClass} `}
+        style={{
+          height: "100dvh",
+        }}
       >
-        <div className="max-w-2xl mx-auto flex flex-col min-h-full pb-24">
-          {/* Unified Action Header Bar */}
-          <div className="flex items-center justify-between w-full h-12 mb-6 shrink-0">
-            <div className="flex items-center gap-4">
+        <div className="w-full flex-1 min-h-0 flex flex-col px-4 sm:px-8 py-6 ">
+          <div className="flex flex-col flex-1 min-h-0 max-w-2xl mx-auto w-full">
+            {/* Unified Action Header Bar */}
+            <div className="flex items-center justify-between w-full h-12 mb-6 shrink-0">
+              <div className="flex items-center gap-4">
+                {isEditing ? (
+                  <ThemeSelector
+                    currentThemeId={selectedTheme}
+                    onThemeChange={setSelectedTheme}
+                    theme={themeConfig}
+                  />
+                ) : (
+                  <div
+                    className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-bold tracking-wide uppercase bg-black/5 dark:bg-white/10 ${themeConfig.textClass}`}
+                  >
+                    <span className="opacity-60 mr-1">Mood:</span> {mood}
+                  </div>
+                )}
+
+                {/* NEW: Live Visual Sync Engine Dot Display */}
+                {isEditing && (
+                  <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold tracking-wide opacity-50 select-none transition-all duration-300">
+                    {syncStatus === "saving" && (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        <span>Saving draft...</span>
+                      </>
+                    )}
+                    {syncStatus === "local-saved" && (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span>Draft saved locally</span>
+                      </>
+                    )}
+                    {syncStatus === "cloud-saving" && (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-ping" />
+                        <span>Syncing with cloud...</span>
+                      </>
+                    )}
+                    {syncStatus === "saved" && (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
+                        <span>Cloud synced ✨</span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Header Operations Control Block */}
+              <div className="flex items-center gap-2">
+                {isEditing ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        pendingFilesRef.current.clear();
+                        setIsEditing(false);
+                        setSyncStatus("saved");
+                      }}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      className="text-xs font-semibold px-4 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white shadow-sm transition-colors"
+                    >
+                      Save
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="text-xs font-semibold px-4 py-1.5 rounded-xl border border-black/10 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-xl text-rose-500 hover:bg-rose-500/10 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Continuous Canvas Block */}
+            <div
+              className="
+w-full
+flex-1
+flex
+flex-col
+min-h-0
+gap-3
+"
+            >
               {isEditing ? (
-                <ThemeSelector
-                  currentThemeId={selectedTheme}
-                  onThemeChange={setSelectedTheme}
-                  theme={themeConfig}
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      editorRef.current?.commands.focus("start");
+                    }
+                  }}
+                  className="w-full bg-transparent text-3xl font-extrabold tracking-tight outline-none border-none p-0 focus:ring-0 focus:outline-none"
+                  placeholder="Untitled Entry"
                 />
               ) : (
-                <div
-                  className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-bold tracking-wide uppercase bg-black/5 dark:bg-white/10 ${themeConfig.textClass}`}
-                >
-                  <span className="opacity-60 mr-1">Mood:</span> {mood}
-                </div>
+                <h1 className="text-3xl font-extrabold tracking-tight">
+                  {title || "Untitled Entry"}
+                </h1>
               )}
 
-              {/* NEW: Live Visual Sync Engine Dot Display */}
-              {isEditing && (
-                <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold tracking-wide opacity-50 select-none transition-all duration-300">
-                  {syncStatus === "saving" && (
-                    <>
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                      <span>Saving draft...</span>
-                    </>
-                  )}
-                  {syncStatus === "local-saved" && (
-                    <>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      <span>Draft saved locally</span>
-                    </>
-                  )}
-                  {syncStatus === "cloud-saving" && (
-                    <>
-                      <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-ping" />
-                      <span>Syncing with cloud...</span>
-                    </>
-                  )}
-                  {syncStatus === "saved" && (
-                    <>
-                      <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
-                      <span>Cloud synced ✨</span>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Header Operations Control Block */}
-            <div className="flex items-center gap-2">
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={() => {
-                      pendingFilesRef.current.clear();
-                      setIsEditing(false);
-                      setSyncStatus("saved");
-                    }}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    className="text-xs font-semibold px-4 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white shadow-sm transition-colors"
-                  >
-                    Save
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="text-xs font-semibold px-4 py-1.5 rounded-xl border border-black/10 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-xl text-rose-500 hover:bg-rose-500/10 transition-colors"
-                  >
-                    Delete
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Continuous Canvas Block */}
-          <div className="w-full flex-1 flex flex-col gap-3">
-            {isEditing ? (
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    editorRef.current?.commands.focus("start");
-                  }
-                }}
-                className="w-full bg-transparent text-3xl font-extrabold tracking-tight outline-none border-none p-0 focus:ring-0 focus:outline-none"
-                placeholder="Untitled Entry"
+              {/* NEW: Passed content updates up into the version ticker to trigger state updates */}
+              <JournalEditor
+                ref={editorRef}
+                initialContent={initialEditorContent}
+                editable={isEditing}
+                onUpdate={() => setContentVersion((v) => v + 1)}
+                themePreset={selectedTheme}
+                pendingFilesRef={pendingFilesRef}
               />
-            ) : (
-              <h1 className="text-3xl font-extrabold tracking-tight">
-                {title || "Untitled Entry"}
-              </h1>
-            )}
-
-            {/* NEW: Passed content updates up into the version ticker to trigger state updates */}
-            <JournalEditor
-              ref={editorRef}
-              initialContent={initialEditorContent}
-              editable={isEditing}
-              onUpdate={() => setContentVersion((v) => v + 1)}
-              themePreset={selectedTheme}
-              pendingFilesRef={pendingFilesRef}
-            />
+            </div>
           </div>
         </div>
       </div>
