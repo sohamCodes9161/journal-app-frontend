@@ -26,24 +26,42 @@ export default function CreateJournalPage() {
   const editorRef = useRef(null);
   const statusTimerRef = useRef(null);
 
-  // Memory map tracker for matching temporary blob URLs to raw files
   const pendingFilesRef = useRef(new Map());
 
   const [title, setTitle] = useState("");
   const [feeling, setFeeling] = useState("neutral");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [currentThemeId, setCurrentThemeId] = useState("warm-parchment");
-
-  /*
-    Tracks synchronization states across local mutations and cloud updates.
-    Available states: "saved" (idle) | "saving" (typing/processing) | "local-saved" | "cloud-saving"
-  */
   const [syncStatus, setSyncStatus] = useState("saved");
+
+  // NEW: Dynamic visual viewport tracking state
+  const [visibleHeight, setVisibleHeight] = useState(window.innerHeight);
 
   const { mutateAsync: createJournal, isPending } = useCreateJournal();
 
   const activeMoodObj = MOODS.find((m) => m.key === feeling) || MOODS[2];
   const themeConfig = getThemeConfig(currentThemeId);
+
+  // NEW: Visual Viewport API Engine Listener
+  useEffect(() => {
+    if (!window.visualViewport) return;
+
+    const handleViewportChange = () => {
+      // Instantly grabs the exact pixel space available above the keyboard
+      setVisibleHeight(window.visualViewport.height);
+    };
+
+    window.visualViewport.addEventListener("resize", handleViewportChange);
+    window.visualViewport.addEventListener("scroll", handleViewportChange);
+
+    // Initial sync
+    handleViewportChange();
+
+    return () => {
+      window.visualViewport.removeEventListener("resize", handleViewportChange);
+      window.visualViewport.removeEventListener("scroll", handleViewportChange);
+    };
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -58,19 +76,15 @@ export default function CreateJournalPage() {
     };
   }, []);
 
-  // Triggers the visual "Saving draft..." state when mutations occur
   const triggerDraftSavingVisual = () => {
     if (syncStatus === "cloud-saving") return;
-
     setSyncStatus("saving");
     if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
-
     statusTimerRef.current = setTimeout(() => {
       setSyncStatus("local-saved");
     }, 1000);
   };
 
-  // Watch for changes to the entry title field
   useEffect(() => {
     if (!title.trim()) return;
     triggerDraftSavingVisual();
@@ -78,23 +92,18 @@ export default function CreateJournalPage() {
 
   const processAndUploadImages = async (node) => {
     if (!node) return node;
-
     if (node.type === "image" && node.attrs?.src?.startsWith("blob:")) {
       const blobUrl = node.attrs.src;
       const rawFile = pendingFilesRef.current.get(blobUrl);
-
       if (rawFile) {
         try {
           const uploadResult = await uploadImage(rawFile);
-          const permanentUrl = uploadResult?.url;
-          const databaseMediaId = uploadResult?.mediaId;
-
           return {
             ...node,
             attrs: {
               ...node.attrs,
-              src: permanentUrl,
-              mediaId: databaseMediaId,
+              src: uploadResult?.url,
+              mediaId: uploadResult?.mediaId,
             },
           };
         } catch (uploadError) {
@@ -103,7 +112,6 @@ export default function CreateJournalPage() {
         }
       }
     }
-
     if (node.content && Array.isArray(node.content)) {
       const updatedChildren = [];
       for (const childNode of node.content) {
@@ -112,14 +120,11 @@ export default function CreateJournalPage() {
       }
       return { ...node, content: updatedChildren };
     }
-
     return node;
   };
 
   const handleSave = async () => {
-    if (!title.trim()) {
-      return toast.error("Please provide an entry title.");
-    }
+    if (!title.trim()) return toast.error("Please provide an entry title.");
 
     const editorContent = editorRef.current?.getJSON();
     let fullyUploadedContent = editorContent;
@@ -142,15 +147,12 @@ export default function CreateJournalPage() {
       title: title.trim(),
       mood: feeling,
       content: fullyUploadedContent || null,
-      styleSettings: {
-        themePreset: currentThemeId,
-      },
+      styleSettings: { themePreset: currentThemeId },
     };
 
     try {
       await createJournal(payload);
       pendingFilesRef.current.clear();
-
       setSyncStatus("saved");
       toast.success("Journal entry saved beautifully!");
       navigate("/app/journals");
@@ -163,15 +165,14 @@ export default function CreateJournalPage() {
 
   return (
     /* 
-      FIX 2: The Viewport Shield
-      Changes container to flex-col with h-[100dvh] (Dynamic Viewport Height).
-      When the software keyboard pops up, the viewport collapses cleanly, 
-      keeping the editor text field responsive and preventing elements from clipping out of bounds.
+      FIXED: Style height is now directly bound to visual viewport pixel size.
+      When the mobile keyboard shows up, the whole container collapses instantly.
     */
     <div
-      className={`fixed inset-0 w-full h-[100dvh] flex flex-col overflow-hidden transition-colors duration-500 selection:bg-violet-500/20 ${themeConfig.bgClass} ${themeConfig.textClass}`}
+      className={`fixed inset-x-0 top-0 w-full flex flex-col overflow-hidden transition-colors duration-500 selection:bg-violet-500/20 ${themeConfig.bgClass} ${themeConfig.textClass}`}
+      style={{ height: `${visibleHeight}px` }}
     >
-      {/* FIXED TOP HEADER NODE */}
+      {/* FIXED TOP HEADER */}
       <div className="w-full h-16 px-4 sm:px-8 flex items-center justify-between shrink-0 border-b border-black/5 dark:border-white/5 bg-transparent z-30">
         <div className="flex items-center gap-4">
           <ThemeSelector
@@ -180,7 +181,6 @@ export default function CreateJournalPage() {
             theme={themeConfig}
           />
 
-          {/* Sync Status Badge */}
           <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold tracking-wide opacity-50 select-none transition-all duration-300">
             {syncStatus === "saving" && (
               <>
@@ -209,9 +209,7 @@ export default function CreateJournalPage() {
           </div>
         </div>
 
-        {/* Action Panel */}
         <div className="flex items-center gap-2">
-          {/* Mood Dropdown Field */}
           <div className="relative" ref={dropdownRef}>
             <button
               type="button"
@@ -221,11 +219,6 @@ export default function CreateJournalPage() {
               {activeMoodObj.emoji}
             </button>
 
-            {/* 
-              FIX 1: Prevent Dropdown Horizon Truncation
-              Adjusts right-0 boundaries and sets explicit alignment maps 
-              to ensure your popover expands predictably inside mobile safe regions.
-            */}
             {isDropdownOpen && (
               <div
                 className={`
@@ -278,11 +271,7 @@ export default function CreateJournalPage() {
         </div>
       </div>
 
-      {/* 
-        INDEPENDENT ISOLATED SCROLL CANVAS
-        The body layout now scrolls completely on its own. If an inner formatting bar
-        is pinned inside JournalEditor at the base, the keyboard forces it up natively.
-      */}
+      {/* INDEPENDENT WORKSPACE WRAPPER */}
       <div className="flex-1 w-full overflow-y-auto px-4 sm:px-8 py-6 custom-scrollbar z-10">
         <div className="max-w-2xl mx-auto flex flex-col gap-4 min-h-full">
           <input
