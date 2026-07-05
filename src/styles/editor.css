@@ -27,3 +27,14 @@
 .tiptap img:hover {
   opacity: 0.96;
 }
+.tiptap {
+  height: 100%;
+}
+
+.ProseMirror {
+  min-height: 100%;
+  height: 100%;
+  outline: none;
+  padding-bottom: 6rem;
+  overflow-wrap: anywhere;
+}

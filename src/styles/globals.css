@@ -19,12 +19,13 @@
 * {
   box-sizing: border-box;
 }
-
 html,
 body,
 #root {
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
 }
 
 body {
@@ -34,15 +35,20 @@ body {
     var(--atmosphere-gradient-top),
     var(--atmosphere-bg)
   );
-  /* Pins the gradient background to the viewport so it doesn't stretch on scroll */
+
   background-attachment: fixed;
+
   color: var(--atmosphere-text);
   font-family: Inter, system-ui, sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+
+  overscroll-behavior: none;
+
   transition:
     background 0.5s ease,
     color 0.5s ease;
+
   color-scheme: var(--color-scheme);
 }
 
