@@ -1,12 +1,14 @@
 // src/features/journal/pages/CreateJournalPage.jsx
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import JournalEditor from "../components/editor/JournalEditor";
 import ThemeSelector from "../components/editor/ThemeSelector";
 import { useCreateJournal } from "../hooks/useCreateJournal";
 import { getThemeConfig } from "../utils/journalThemes";
 import { uploadImage } from "../api/uploadApi";
+import useJournalDraft from "../hooks/useJournalDraft";
+import { loadDraft } from "../draftStorage/storage";
 
 const MOODS = [
   { key: "happy", emoji: "😊" },
@@ -22,18 +24,48 @@ const MOODS = [
 
 export default function CreateJournalPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const draftFromUrl = searchParams.get("draft");
   const dropdownRef = useRef(null);
   const editorRef = useRef(null);
   const statusTimerRef = useRef(null);
 
   const pendingFilesRef = useRef(new Map());
 
+  const [draftId] = useState(() => {
+    return draftFromUrl || crypto.randomUUID();
+  });
+
   const [title, setTitle] = useState("");
   const [feeling, setFeeling] = useState("neutral");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [currentThemeId, setCurrentThemeId] = useState("warm-parchment");
+  const [currentThemeId, setCurrentThemeId] = useState("midnight-ink");
   const [syncStatus, setSyncStatus] = useState("saved");
+  const [editorContent, setEditorContent] = useState(null);
+  const [draftReady, setDraftReady] = useState(false);
+  const [draftHydrated, setDraftHydrated] = useState(false);
 
+  useEffect(() => {
+    const draft = loadDraft(draftId);
+
+    if (draft) {
+      setTitle(draft.title || "");
+      setFeeling(draft.mood || "neutral");
+      setCurrentThemeId(draft.themePreset || "warm-parchment");
+      setEditorContent(draft.content || null);
+    }
+
+    setDraftHydrated(true);
+  }, [draftId]);
+
+  const { removeDraft } = useJournalDraft({
+    draftKey: draftId,
+    enabled: draftHydrated,
+    title,
+    mood: feeling,
+    content: editorContent,
+    themePreset: currentThemeId,
+  });
   const { mutateAsync: createJournal, isPending } = useCreateJournal();
 
   const activeMoodObj = MOODS.find((m) => m.key === feeling) || MOODS[2];
@@ -128,6 +160,7 @@ export default function CreateJournalPage() {
 
     try {
       await createJournal(payload);
+      removeDraft(draftId);
       pendingFilesRef.current.clear();
       setSyncStatus("saved");
       toast.success("Journal entry saved beautifully!");
@@ -289,9 +322,10 @@ gap-4
             ref={editorRef}
             editable={true}
             themePreset={currentThemeId}
-            initialContent={null}
+            initialContent={editorContent}
             pendingFilesRef={pendingFilesRef}
             onUpdate={triggerDraftSavingVisual}
+            onChange={setEditorContent}
           />
         </div>
       </div>
