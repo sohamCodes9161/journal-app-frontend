@@ -171,3 +171,17 @@ export function clearAllDrafts() {
 
   localStorage.removeItem(DRAFT_REGISTRY_KEY);
 }
+
+export function renameDraftInIndex(id, title) {
+  try {
+    const drafts = getDraftIndex();
+
+    const updated = drafts.map((draft) =>
+      draft.id === id ? { ...draft, title } : draft
+    );
+
+    localStorage.setItem(DRAFT_INDEX_KEY, JSON.stringify(updated));
+  } catch (err) {
+    console.error(err);
+  }
+}
