@@ -16,6 +16,7 @@ import ProtectedRoutes from "./ProtectedRoutes";
 import PublicOnlyRoutes from "./PublicOnlyRoutes";
 import SettingsPage from "@/pages/SettingsPage";
 import { AnalyticsPage } from "@/features/analytics/pages/AnalyticsPage";
+import DraftJournalPage from "@/features/journal/pages/DraftJournalPage";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -59,14 +60,9 @@ const router = createBrowserRouter([
             path: "journals",
             element: <JournalFeedPage />,
           },
-
           {
-            path: "todos",
-            element: <TodosPage />,
-          },
-          {
-            path: "analytics",
-            element: <AnalyticsPage />,
+            path: "journals/drafts",
+            element: <DraftJournalPage />,
           },
           {
             path: "journals/new",
@@ -75,6 +71,14 @@ const router = createBrowserRouter([
           {
             path: "journals/:journalId",
             element: <JournalDetailPage />,
+          },
+          {
+            path: "todos",
+            element: <TodosPage />,
+          },
+          {
+            path: "analytics",
+            element: <AnalyticsPage />,
           },
           {
             path: "settings",
