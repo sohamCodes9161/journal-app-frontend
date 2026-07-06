@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom"; // 🌟 Added useSearchParams
+import React, { useState, useEffect, useMemo } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import PageHeader from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui";
 import JournalCard from "../components/JournalCard";
@@ -8,11 +8,12 @@ import JournalFilters from "../components/JournalFilters";
 import JournalPagination from "../components/JournalPagination";
 
 function JournalFeedPage() {
-  // 🌟 Read URL search parameters (e.g., ?date=2026-06-15)
   const [searchParams, setSearchParams] = useSearchParams();
-  const dateParam = searchParams.get("date") || "";
 
-  // 1. Unified Control States for dynamic Lazy Filtering
+  // Read parameters strictly from the URL string as our Single Source of Truth
+  const dateParam = searchParams.get("date") || "";
+  const page = parseInt(searchParams.get("page") || "1", 10);
+
   const [filters, setFilters] = useState({
     search: "",
     mood: "",
@@ -20,9 +21,7 @@ function JournalFeedPage() {
     endDate: "",
   });
   const [debouncedFilters, setDebouncedFilters] = useState(filters);
-  const [page, setPage] = useState(1);
 
-  // 2. Text input debouncer effect (reduces server computational cost on active typing)
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedFilters(filters);
@@ -30,28 +29,37 @@ function JournalFeedPage() {
     return () => clearTimeout(handler);
   }, [filters]);
 
-  // 🌟 Reset pagination to page 1 whenever filters OR incoming URL dates change
-  useEffect(() => {
-    setPage(1);
-  }, [dateParam]);
+  const updateSearchParam = (key, value) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (value) {
+      newParams.set(key, value);
+    } else {
+      newParams.delete(key);
+    }
+    setSearchParams(newParams);
+  };
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
-    setPage(1);
+    updateSearchParam("page", "1"); // Reset to page 1 safely when user alters filter fields
   };
 
-  // 3. Connect everything directly into your hook logic (Now forwarding the dateParam)
-  const { data, isLoading, isError } = useJournals({
-    page,
-    limit: 10,
-    search: debouncedFilters.search,
-    mood: debouncedFilters.mood,
-    startDate: debouncedFilters.startDate,
-    endDate: debouncedFilters.endDate,
-    date: dateParam, // 🌟 Passing the selected analytics date to the hook parameter pool
-  });
+  const journalParams = useMemo(
+    () => ({
+      page,
+      limit: 10,
+      search: debouncedFilters.search,
+      mood: debouncedFilters.mood,
+      startDate: debouncedFilters.startDate,
+      endDate: debouncedFilters.endDate,
+      date: dateParam,
+    }),
+    [page, debouncedFilters, dateParam]
+  );
 
-  // Loading State UI Match
+  const { data, isLoading, isError } = useJournals(journalParams);
+
+  // 1. Restored original loading state with spinner
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -65,7 +73,7 @@ function JournalFeedPage() {
     );
   }
 
-  // Error State UI Match
+  // 2. Restored original error banner block
   if (isError) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
@@ -81,14 +89,12 @@ function JournalFeedPage() {
     );
   }
 
-  // Check if user has filters applied currently (Including checking the URL date pill)
   const hasActiveFilters =
     Object.values(filters).some((val) => val !== "") || !!dateParam;
   const hasNoResults = !data || !data.journals || data.journals.length === 0;
 
   return (
-    <div className="space-y-6">
-      {/* Top Header Row with Action Redirection Button Insertion */}
+    <div className="h-full overflow-y-auto px-4 pb-28 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-white/5 pb-5">
         <div className="flex flex-col gap-2">
           <PageHeader
@@ -96,15 +102,16 @@ function JournalFeedPage() {
             description="Moments, reflections, and thoughts captured over time."
           />
 
-          {/* 🌟 Active Analytics Filtering Badge Layer */}
+          {/* 3. Restored showing day date badge pill block */}
           {dateParam && (
-            <div className="flex items-center gap-2 self-start rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-xs text-violet-300 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="flex items-center gap-2 self-start rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-xs text-violet-300 backdrop-blur-sm">
               <span className="font-mono">Showing Day: {dateParam}</span>
               <button
                 onClick={() => {
-                  // Strips the date parameter from the browser URL address block entirely
-                  searchParams.delete("date");
-                  setSearchParams(searchParams);
+                  const newParams = new URLSearchParams(searchParams);
+                  newParams.delete("date");
+                  newParams.set("page", "1");
+                  setSearchParams(newParams);
                 }}
                 className="ml-1 font-bold text-violet-400 hover:text-violet-200 transition-colors cursor-pointer"
                 title="Clear day filter"
@@ -115,7 +122,7 @@ function JournalFeedPage() {
           )}
         </div>
 
-        {/* Global Floating Action Element Trigger */}
+        {/* 4. Restored "+ Create New Journal" navigation button */}
         <Link to="/app/journals/new" className="w-full sm:w-auto">
           <Button className="w-full sm:w-auto bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-violet-500/10 transition-all active:scale-[0.98]">
             + Create New Journal
@@ -123,36 +130,23 @@ function JournalFeedPage() {
         </Link>
       </div>
 
-      {/* Control Panel Filter Anchor Row */}
       <JournalFilters filters={filters} onFilterChange={handleFilterChange} />
 
-      {/* Conditional Rendering Processing Core */}
+      {/* 5. Restored original aesthetic empty states */}
       {hasNoResults ? (
         hasActiveFilters ? (
-          /* Filtered empty state alternative viewport */
           <div className="flex min-h-[40vh] flex-col items-center justify-center text-center border border-dashed border-white/10 rounded-[32px] bg-white/[0.01] p-8">
             <p className="text-base font-medium text-slate-400">
               No pathways match your filtering parameters
             </p>
-            <p className="text-xs text-slate-600 mt-1">
-              Try resetting dates, updating text keys, or clearing mood inputs.
-            </p>
           </div>
         ) : (
-          /* System Baseline Total Empty onboarding State Layout */
           <div className="relative flex min-h-[55vh] flex-col items-center justify-center overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] px-8 py-16 text-center backdrop-blur-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 via-transparent to-cyan-500/10" />
             <div className="relative z-10 max-w-xl">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-white/5 text-3xl backdrop-blur-xl">
-                ✨
-              </div>
               <h2 className="text-3xl font-semibold tracking-tight text-white">
                 Your thoughts will begin to gather here
               </h2>
-              <p className="mt-4 text-base leading-8 text-slate-400">
-                Start writing gently. Every reflection, memory, and feeling
-                becomes part of your journey over time.
-              </p>
               <Link to="/app/journals/new">
                 <Button className="mt-8">Write Your First Journal</Button>
               </Link>
@@ -160,7 +154,6 @@ function JournalFeedPage() {
           </div>
         )
       ) : (
-        /* Render Populated Grid View Container with Lazy Pagination Controls */
         <>
           <div className="grid gap-6">
             {data.journals.map((journal) => (
@@ -171,7 +164,9 @@ function JournalFeedPage() {
           <JournalPagination
             currentPage={page}
             pagination={data.pagination}
-            onPageChange={(targetPage) => setPage(targetPage)}
+            onPageChange={(targetPage) =>
+              updateSearchParam("page", targetPage.toString())
+            }
           />
         </>
       )}
