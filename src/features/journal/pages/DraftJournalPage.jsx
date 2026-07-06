@@ -1,9 +1,48 @@
-import { getDraftIndex } from "../draftStorage/storage";
+import { useState } from "react";
 import { getThemeConfig } from "../utils/journalThemes";
 import { useNavigate } from "react-router-dom";
+import DraftCard from "../components/DraftCard";
+
+import {
+  getDraftIndex,
+  clearDraft,
+  removeDraftFromIndex,
+  renameDraftInIndex,
+  saveDraft,
+  loadDraft,
+} from "../draftStorage/storage";
+
 export default function DraftJournalPage() {
   const navigate = useNavigate();
-  const drafts = getDraftIndex();
+  const [drafts, setDrafts] = useState(getDraftIndex());
+
+  const handleDelete = (draft) => {
+    if (!window.confirm("Delete this draft?")) return;
+
+    clearDraft(draft.id);
+    removeDraftFromIndex(draft.id);
+
+    setDrafts(getDraftIndex());
+  };
+
+  const handleRename = (draft) => {
+    const newTitle = prompt("New title", draft.title);
+
+    if (!newTitle?.trim()) return;
+
+    renameDraftInIndex(draft.id, newTitle.trim());
+
+    const fullDraft = loadDraft(draft.id);
+
+    if (fullDraft) {
+      saveDraft(draft.id, {
+        ...fullDraft,
+        title: newTitle.trim(),
+      });
+    }
+
+    setDrafts(getDraftIndex());
+  };
 
   return (
     <div className="max-w-3xl mx-auto p-6">
@@ -12,47 +51,16 @@ export default function DraftJournalPage() {
       {drafts.length === 0 ? (
         <p>No unfinished journals.</p>
       ) : (
-        drafts.map((draft) => {
-          const theme = getThemeConfig(draft.themePreset);
-
-          return (
-            <div
-              onClick={() => navigate(`/app/journals/new?draft=${draft.id}`)}
+        <div className="space-y-4">
+          {drafts.map((draft) => (
+            <DraftCard
               key={draft.id}
-              className={`rounded-2xl border p-5 mb-4 transition hover:scale-[1.01] cursor-pointer ${theme.borderClass} ${theme.bgClass}`}
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className={`text-xl font-bold ${theme.textClass}`}>
-                    {draft.title || "Untitled Journal"}
-                  </h2>
-
-                  <p className={`text-sm mt-1 ${theme.mutedClass}`}>
-                    {draft.preview || "No preview available"}
-                  </p>
-                </div>
-
-                <div className="text-2xl">
-                  {{
-                    happy: "😊",
-                    sad: "😢",
-                    neutral: "😐",
-                    anxious: "😰",
-                    excited: "✨",
-                    angry: "😡",
-                    grateful: "🙏",
-                    tired: "🥱",
-                    reflective: "🤔",
-                  }[draft.mood] || "📖"}
-                </div>
-              </div>
-
-              <div className={`mt-4 text-xs ${theme.mutedClass}`}>
-                Last edited • {new Date(draft.updatedAt).toLocaleString()}
-              </div>
-            </div>
-          );
-        })
+              draft={draft}
+              onDelete={handleDelete}
+              onRename={handleRename}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
