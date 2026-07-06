@@ -6,6 +6,7 @@ import JournalCard from "../components/JournalCard";
 import useJournals from "../hooks/useJournals";
 import JournalFilters from "../components/JournalFilters";
 import JournalPagination from "../components/JournalPagination";
+import { getDraftIndex } from "../draftStorage/storage";
 
 function JournalFeedPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -93,10 +94,12 @@ function JournalFeedPage() {
     Object.values(filters).some((val) => val !== "") || !!dateParam;
   const hasNoResults = !data || !data.journals || data.journals.length === 0;
 
+  const drafts = getDraftIndex();
+
   return (
     <div className="h-full overflow-y-auto px-4 pb-28 space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-white/5 pb-5">
-        <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between border-b border-white/5 pb-5 gap-4">
+        <div className="flex flex-col gap-2 min-w-0">
           <PageHeader
             title="Your Journals"
             description="Moments, reflections, and thoughts captured over time."
@@ -122,12 +125,32 @@ function JournalFeedPage() {
           )}
         </div>
 
-        {/* 4. Restored "+ Create New Journal" navigation button */}
-        <Link to="/app/journals/new" className="w-full sm:w-auto">
-          <Button className="w-full sm:w-auto bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-violet-500/10 transition-all active:scale-[0.98]">
-            + Create New Journal
-          </Button>
-        </Link>
+        {/* Clean, compact action bar housing Drafts Notification Icon + Action Button */}
+        <div className="flex items-center gap-4 shrink-0">
+          {/* Notification-style Book Icon for Drafts */}
+          {drafts.length > 0 && (
+            <Link
+              to="/app/journals/drafts"
+              className="relative p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 transition-colors flex items-center justify-center group"
+              title="Manage Drafts"
+            >
+              <span className="text-xl leading-none">📖</span>
+              <span className="absolute -top-1.5 -right-1.5 bg-violet-600 text-white font-bold text-[10px] h-5 w-5 rounded-full flex items-center justify-center border border-slate-950 shadow-md animate-in zoom-in-50 duration-200">
+                {drafts.length}
+              </span>
+            </Link>
+          )}
+
+          {/* Compact Responsive New Journal Action */}
+          <Link to="/app/journals/new">
+            <Button className="bg-violet-600 hover:bg-violet-500 text-white font-medium text-sm transition-all active:scale-[0.98] shadow-lg shadow-violet-500/10 h-10 px-4 rounded-xl flex items-center justify-center">
+              {/* Visible on Desktop */}
+              <span className="hidden sm:inline">New Journal</span>
+              {/* Minimal '+' symbol visible on Mobile */}
+              <span className="sm:hidden text-lg font-bold">+</span>
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <JournalFilters filters={filters} onFilterChange={handleFilterChange} />
