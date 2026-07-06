@@ -53,7 +53,7 @@ export const JOURNAL_THEMES = [
   },
 
   {
-    id: "mint_sage",
+    id: "mint-sage",
     name: "Sage Green",
     bgClass: "bg-[#F0FAF2]",
     textClass:
@@ -87,7 +87,7 @@ export const JOURNAL_THEMES = [
   },
 
   {
-    id: "lavender_haze",
+    id: "lavender-haze",
     name: "Soft Lavender",
     bgClass: "bg-[#F8F3FF]",
     textClass:
@@ -121,7 +121,7 @@ export const JOURNAL_THEMES = [
   },
 
   {
-    id: "mist_gray",
+    id: "mist-gray",
     name: "Mist Gray",
     bgClass: "bg-[#F8F9FB]",
     textClass:
@@ -138,7 +138,7 @@ export const JOURNAL_THEMES = [
   },
 
   {
-    id: "midnight",
+    id: "midnight-ink",
     name: "Midnight Dark",
     bgClass: "bg-[#121115]",
     textClass:
