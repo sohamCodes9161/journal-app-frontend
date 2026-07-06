@@ -25,18 +25,34 @@ export default function JournalFilters({ filters, onFilterChange }) {
   };
 
   // Only apply dates when BOTH are explicitly filled or both are cleared
+  // src/features/journal/components/JournalFilters.jsx
+
+  // ... rest of your component logic stays identical ...
+
+  // Only apply dates when BOTH are explicitly filled or both are cleared
   const applyDateFilter = () => {
     if (
       (localStartDate && localEndDate) ||
       (!localStartDate && !localEndDate)
     ) {
-      onFilterChange({
-        ...filters,
-        startDate: localStartDate,
-        endDate: localEndDate,
-      });
+      // 💡 ONLY trigger parent update if the values are actually different from current parent filters
+      if (
+        localStartDate !== filters.startDate ||
+        localEndDate !== filters.endDate
+      ) {
+        onFilterChange({
+          ...filters,
+          startDate: localStartDate,
+          endDate: localEndDate,
+        });
+      }
     }
   };
+
+  // Trigger date validation check on local assignment alterations
+  useEffect(() => {
+    applyDateFilter();
+  }, [localStartDate, localEndDate, filters.startDate, filters.endDate]); // Added filters to dependencies Safely
 
   // Trigger date validation check on local assignment alterations
   useEffect(() => {
