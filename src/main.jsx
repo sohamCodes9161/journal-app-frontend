@@ -6,14 +6,15 @@ import QueryProvider from "@/providers/queryProvider";
 import router from "@/routes/router";
 import { Toaster } from "react-hot-toast";
 import AuthProvider from "@/features/auth/providers/AuthProvider";
-
+import { ThemeProvider } from "./theme/ThemeProvider";
 import "./index.css";
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <QueryProvider>
       <AuthProvider>
-        <RouterProvider router={router} />
-
+        <ThemeProvider>
+          <RouterProvider router={router} />
+        </ThemeProvider>
         <Toaster
           position="top-right"
           toastOptions={{

@@ -11,20 +11,19 @@ function MobileNav() {
         right-0
         z-50
         border-t
-        border-white/10
-        bg-slate-950/90
+        border-[var(--border-default)]
+        bg-[var(--surface-primary)]
         backdrop-blur-2xl
         lg:hidden
       "
+      style={{ boxShadow: "var(--shadow-panel)" }}
     >
-      {/* Added pb-safe for iPhones with bottom swipe bars */}
       <nav className="flex items-center justify-around px-2 py-3 pb-safe">
         {navigationLinks.map((link) => (
           <NavLinkItem key={link.path} to={link.path}>
-            {/* Stack Icon on top, Text on bottom */}
-            <div className="flex flex-col items-center gap-1 w-16">
-              <span className="text-xl drop-shadow-md mb-0.5">{link.icon}</span>
-              <span className="text-[10px] font-medium tracking-wide text-center w-full truncate">
+            <div className="flex flex-col items-center gap-1 w-16 text-[var(--text-secondary)]">
+              <span className="text-xl drop-shadow-sm mb-0.5">{link.icon}</span>
+              <span className="text-[10px] font-medium tracking-wide text-center w-full truncate text-[var(--text-muted)]">
                 {link.label}
               </span>
             </div>

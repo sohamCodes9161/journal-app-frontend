@@ -3,7 +3,6 @@ import { navigationLinks } from "./navigationLinks";
 import NavLinkItem from "./NavLinkItem";
 
 function Sidebar() {
-  // State to manage whether the sidebar is compressed or expanded
   const [isCollapsed, setIsCollapsed] = useState(true);
 
   return (
@@ -12,10 +11,10 @@ function Sidebar() {
         hidden
         flex-col
         border-r
-        border-white/10
-        bg-slate-950/40
+        border-[var(--border-default)]
+        bg-[var(--surface-primary)]
         backdrop-blur-xl
-        transition-all duration-300 ease-in-out
+        transition-all duration-[var(--animation-default,220ms)] ease-in-out
         lg:flex
         ${isCollapsed ? "w-20 items-center" : "w-64 px-4"}
         py-6
@@ -27,10 +26,10 @@ function Sidebar() {
       >
         {!isCollapsed && (
           <div className="overflow-hidden whitespace-nowrap">
-            <h2 className="text-xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+            <h2 className="text-xl font-bold bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] bg-clip-text text-transparent">
               Journal App
             </h2>
-            <p className="mt-1 text-[10px] uppercase tracking-wider text-slate-400">
+            <p className="mt-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
               Your calm space
             </p>
           </div>
@@ -38,7 +37,7 @@ function Sidebar() {
 
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 transition-colors border border-white/5"
+          className="p-2 rounded-xl bg-[var(--surface-secondary)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] transition-colors border border-[var(--border-default)] cursor-pointer"
           title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {isCollapsed ? "➡️" : "⬅️"}
@@ -50,11 +49,11 @@ function Sidebar() {
         {navigationLinks.map((link) => (
           <NavLinkItem key={link.path} to={link.path}>
             <div
-              className={`flex items-center ${isCollapsed ? "justify-center w-full" : "gap-3"}`}
+              className={`flex items-center text-[var(--text-secondary)] ${isCollapsed ? "justify-center w-full" : "gap-3"}`}
             >
-              <span className="text-xl drop-shadow-md">{link.icon}</span>
+              <span className="text-xl drop-shadow-sm">{link.icon}</span>
               {!isCollapsed && (
-                <span className="font-medium tracking-wide whitespace-nowrap">
+                <span className="font-medium tracking-wide whitespace-nowrap text-[var(--text-primary)]">
                   {link.label}
                 </span>
               )}

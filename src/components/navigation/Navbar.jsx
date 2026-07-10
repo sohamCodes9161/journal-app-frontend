@@ -16,26 +16,30 @@ export default function Navbar() {
   const journalingStreak = user?.streaks?.journalingStreak || 0;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/40 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-[var(--border-default)] bg-[var(--surface-primary)] backdrop-blur-xl">
       <div className="flex h-16 items-center justify-between px-4 sm:px-6">
-        {/* Left Side: Hide the entire greeting on mobile to save space */}
+        {/* Left Side */}
         <div className="hidden sm:block">
-          <h1 className="text-sm font-medium text-slate-400">
+          <h1 className="text-sm font-medium text-[var(--text-secondary)]">
             Welcome back,{" "}
-            <span className="text-slate-100 font-semibold">{username}</span>
+            <span className="text-[var(--text-primary)] font-semibold">
+              {username}
+            </span>
           </h1>
         </div>
 
-        {/* Mobile-only logo/title placeholder so the left side isn't empty on phones */}
-        <div className="block sm:hidden text-lg font-bold">Journal App</div>
+        {/* Mobile Logo Title */}
+        <div className="block sm:hidden text-lg font-bold text-[var(--text-primary)]">
+          Journal App
+        </div>
 
-        {/* Right Side: Identity Layout & Hub Indicators */}
+        {/* Right Side */}
         <div className="flex items-center gap-2 sm:gap-4">
           <NotificationHub />
 
           {journalingStreak > 0 && (
             <div
-              className="hidden sm:flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] font-bold px-2.5 py-1 rounded-full animate-pulse"
+              className="hidden sm:flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 text-[11px] font-bold px-2.5 py-1 rounded-full animate-pulse"
               title="Your daily consecutive journaling streak!"
             >
               🔥 {journalingStreak}
@@ -44,27 +48,26 @@ export default function Navbar() {
 
           <Link
             to="/app/settings"
-            className="flex items-center gap-2.5 bg-white/[0.02] border border-white/5 hover:border-violet-500/30 sm:pl-3 pr-2 py-1 p-1 rounded-xl transition group"
+            className="flex items-center gap-2.5 bg-[var(--surface-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-primary)]/50 sm:pl-3 pr-2 py-1 p-1 rounded-xl transition-all group"
           >
-            <span className="text-xs font-semibold text-slate-300 group-hover:text-slate-100 transition hidden sm:inline-block">
+            <span className="text-xs font-semibold text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition hidden sm:inline-block">
               {username}
             </span>
             <img
               src={avatarUrl}
               alt={username}
-              className="w-7 h-7 rounded-lg border border-white/10 group-hover:border-violet-400/50 bg-slate-900 object-cover transition"
+              className="w-7 h-7 rounded-lg border border-[var(--border-subtle)] bg-[var(--background-secondary)] object-cover transition"
             />
           </Link>
 
-          <div className="h-4 w-px bg-white/10 hidden sm:block" />
+          <div className="h-4 w-px bg-[var(--border-default)] hidden sm:block" />
 
-          {/* Compress Logout to just an icon or smaller text on mobile */}
           <Button
             variant="secondary"
             size="sm"
             isLoading={logoutMutation.isPending}
             onClick={() => logoutMutation.mutate()}
-            className="bg-white/5 hover:bg-white/10 border border-white/5 text-xs font-medium px-2 sm:px-3"
+            className="text-xs font-medium px-2 sm:px-3 h-8 rounded-lg"
             title="Logout"
           >
             <span className="hidden sm:inline">Logout</span>
