@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import AppLayout from "@/layouts/AppLayout";
+import { AppLayout } from "@/layouts/AppLayout";
 import { Button, Card, PageHeader } from "@/components/ui";
 import useAuth from "@/features/auth/hooks/useAuth";
 

@@ -113,7 +113,7 @@ export default function TodosPage() {
     );
 
   return (
-    <div className="space-y-10 max-w-3xl mx-auto px-4 pb-24 text-[var(--text-primary)]">
+    <div className="h-[100dvh] overflow-y-auto space-y-10 max-w-3xl mx-auto px-4 pb-24 text-[var(--text-primary)]">
       {/* Header Architecture */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 border-b border-[var(--border-default)] pb-6">
         <PageHeader
