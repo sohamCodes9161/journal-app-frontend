@@ -1,24 +1,36 @@
-/* Update this inside your global/editor CSS stylesheet */
-
+/* Core Configuration */
 :root {
-  /* Core Application Theme Variables (Baseline Dark Mode) */
-  --atmosphere-bg: #121115;
-  --atmosphere-gradient-top: #172554; /* Your classic dark navy */
-  --atmosphere-text: #e2dfe5;
-  --atmosphere-text-muted: #94a3b8;
-  --atmosphere-border: rgba(255, 255, 255, 0.08);
-  --atmosphere-surface: rgba(255, 255, 255, 0.02);
-  --atmosphere-surface-hover: rgba(255, 255, 255, 0.08);
-  --atmosphere-scrollbar: rgba(255, 255, 255, 0.12);
-  --atmosphere-scrollbar-hover: rgba(255, 255, 255, 0.2);
-  --color-scheme: dark;
-}
+  /* Baseline definitions so they always exist */
+  --background-primary: #070b14;
+  --background-secondary: #0f172a;
+  --background-tertiary: #162033;
 
-/* ────────────────────────────────────────────────────────────────────────── */
+  --surface-primary: #111827;
+  --surface-secondary: #1e293b;
+  --surface-elevated: #263549;
+  --surface-floating: #2e3e54;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-inverse: #0f172a;
+
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
+  --gradient-page: linear-gradient(180deg, #070b14 0%, #0f172a 100%);
+
+  /* Correctly contained ambient background variables */
+  --background-size: 400% 400%;
+  --background-animation-duration: 40s; /* Sped up slightly so you can actually see the live wave movement */
+  --background-animation-timing: ease-in-out;
+}
 
 * {
   box-sizing: border-box;
 }
+
 html,
 body,
 #root {
@@ -29,27 +41,13 @@ body,
 }
 
 body {
-  margin: 0;
-  background: radial-gradient(
-    circle at top,
-    var(--atmosphere-gradient-top),
-    var(--atmosphere-bg)
-  );
-
-  background-attachment: fixed;
-
-  color: var(--atmosphere-text);
-  font-family: Inter, system-ui, sans-serif;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-
-  overscroll-behavior: none;
-
+  position: relative;
+  overflow: hidden;
+  background: var(--background-primary);
+  color: var(--text-primary);
   transition:
-    background 0.5s ease,
-    color 0.5s ease;
-
-  color-scheme: var(--color-scheme);
+    background 0.35s ease,
+    color 0.35s ease;
 }
 
 button,
@@ -67,14 +65,14 @@ select {
   height: auto;
   display: block;
   margin: 2rem auto;
-  border-radius: 1.5rem;
+  border-radius: var(--radius-lg, 22px);
   object-fit: cover;
-  border: 1px solid var(--atmosphere-border);
+  border: 1px solid var(--border-default);
   overflow: hidden;
   transition:
     transform 0.3s ease,
     opacity 0.3s ease,
-    border-color 0.5s ease;
+    border-color var(--animation-default, 220ms) ease;
 }
 
 /* Adaptive Webkit Scrollbar Controls */
@@ -87,11 +85,123 @@ select {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--atmosphere-scrollbar);
+  background: var(--border-strong, rgba(255, 255, 255, 0.12));
   border-radius: 999px;
-  transition: background-color 0.3s ease;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--atmosphere-scrollbar-hover);
+/* Reusable Theme Utility Building Blocks */
+.bg-gradient-theme {
+  background: var(--gradient-background);
+}
+
+.theme-gradient {
+  background: var(--gradient-primary);
+}
+
+.theme-glass {
+  background: var(--glass) !important;
+  backdrop-filter: blur(var(--blur-card, 18px)) !important;
+}
+
+.theme-shadow {
+  box-shadow: 0 10px 35px var(--shadow-color) !important;
+}
+
+.theme-glow {
+  box-shadow: 0 0 30px var(--glow-color) !important;
+}
+
+/* --- The Live Moving Atmosphere Layers --- */
+/* --- The Live Moving Atmosphere Layers (Aurora / Mesh Effect) --- */
+
+body {
+  /* Ensure a solid base fallback */
+  background-color: var(--background-primary);
+  /* Keep your theme's base gradient if it has one */
+  background-image: var(--gradient-page);
+  background-attachment: fixed;
+  background-size: cover;
+}
+
+/* Orb 1: Floats top-left to center */
+body::before {
+  content: "";
+  position: fixed;
+  top: -10%;
+  left: -10%;
+  width: 60vw;
+  height: 60vw;
+  border-radius: 50%;
+  /* Uses your theme's primary accent color */
+  background: radial-gradient(
+    circle,
+    var(--accent-primary) 0%,
+    transparent 60%
+  );
+  filter: blur(120px);
+  opacity: 0.15; /* Subtle enough to not ruin text contrast */
+  z-index: -1;
+  pointer-events: none;
+  animation: floatOrbPrimary 25s ease-in-out infinite alternate;
+}
+
+/* Orb 2: Floats bottom-right to center */
+body::after {
+  content: "";
+  position: fixed;
+  bottom: -10%;
+  right: -10%;
+  width: 70vw;
+  height: 70vw;
+  border-radius: 50%;
+  /* Uses your theme's secondary accent color */
+  background: radial-gradient(
+    circle,
+    var(--accent-secondary) 0%,
+    transparent 60%
+  );
+  filter: blur(120px);
+  opacity: 0.12;
+  z-index: -1;
+  pointer-events: none;
+  animation: floatOrbSecondary 30s ease-in-out infinite alternate-reverse;
+}
+
+/* Keyframes for natural, breathing movement */
+@keyframes floatOrbPrimary {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(8vw, 5vh) scale(1.1);
+  }
+  66% {
+    transform: translate(-4vw, 8vh) scale(0.95);
+  }
+  100% {
+    transform: translate(2vw, -2vh) scale(1.05);
+  }
+}
+
+@keyframes floatOrbSecondary {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(-8vw, -5vh) scale(1.15);
+  }
+  66% {
+    transform: translate(5vw, -8vh) scale(0.9);
+  }
+  100% {
+    transform: translate(-3vw, 3vh) scale(1.05);
+  }
+}
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after {
+    animation: none;
+  }
 }
