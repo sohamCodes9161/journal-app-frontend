@@ -21,11 +21,10 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             duration: 2500,
 
             style: {
-              background: "#111827",
-              color: "#fff",
-              border: "1px solid rgba(255,255,255,0.1)",
+              background: "var(--surface-elevated)",
+              color: "var(--text-primary)",
+              border: "1px solid var(--border-default)",
               borderRadius: "16px",
-              padding: "14px 16px",
             },
           }}
         />
