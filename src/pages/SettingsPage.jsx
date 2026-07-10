@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AuthContext } from "@/features/auth/providers/AuthProvider";
 import PageHeader from "@/components/ui/PageHeader";
-import { Button } from "@/components/ui";
 import API from "@/services/api";
 import { toast } from "react-hot-toast";
-
+import { Button, Surface } from "@/components/ui";
+import ThemeSelector from "@/components/settings/ThemeSelector";
 export default function SettingsPage() {
   const { user, setUser } = React.useContext(AuthContext);
   const [isSaving, setIsSaving] = useState(false);
@@ -146,40 +146,41 @@ export default function SettingsPage() {
       setIsSaving(false);
     }
   };
-
   return (
-    <div className="space-y-6 max-w-4xl pb-12">
+    <Surface className="h-full overflow-y-auto max-w-4xl mx-auto px-4 pb-28">
       <PageHeader
         title="Account Preferences"
         description="Tune your environmental adjustments, notification sync triggers, and personalized telemetry settings."
       />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* SECTION 1: Identity Profile Card Parameters */}
-        <div className="bg-white/[0.02] border border-white/10 p-6 rounded-[24px] backdrop-blur-xl space-y-4">
-          <h2 className="text-sm font-semibold text-violet-400 tracking-wider uppercase">
-            Identity Matrix
+      <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+        {/* SECTION 1 */}
+        <Surface elevation={2} className="p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-accent tracking-wider uppercase">
+            Profile
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">
+              <label className="block text-xs font-medium text-muted mb-1.5">
                 Username (Read Only Email Address Protected)
               </label>
+
               <input
                 type="text"
                 name="username"
                 value={formData.username}
                 onChange={handleInputChange}
-                className="w-full bg-white/5 border border-white/5 focus:border-violet-500/30 rounded-xl px-4 py-2 text-sm text-slate-200 outline-none transition"
+                className="w-full rounded-xl border border-border bg-surface px-4 py-2 text-sm text-text outline-none transition-colors focus:border-accent"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">
+              <label className="block text-xs font-medium text-muted mb-1.5">
                 Profile Picture Avatar
               </label>
+
               <div className="flex items-center gap-4">
                 <img
                   src={
@@ -189,8 +190,9 @@ export default function SettingsPage() {
                         `https://api.dicebear.com/7.x/bottts/svg?seed=${formData.username}`
                   }
                   alt="Preview"
-                  className="w-12 h-12 rounded-xl object-cover bg-slate-900 border border-white/10"
+                  className="w-12 h-12 rounded-xl object-cover bg-background border border-border"
                 />
+
                 <input
                   type="file"
                   accept="image/*"
@@ -198,17 +200,18 @@ export default function SettingsPage() {
                   onChange={(e) => setAvatarFile(e.target.files[0])}
                   className="hidden"
                 />
+
                 <Button
                   type="button"
                   variant="secondary"
                   size="sm"
                   onClick={() => fileInputRef.current.click()}
-                  className="bg-white/5 border border-white/5 text-xs text-slate-300 hover:bg-white/10"
                 >
                   Choose Image
                 </Button>
+
                 {avatarFile && (
-                  <span className="text-xs text-violet-400 font-medium animate-pulse">
+                  <span className="text-xs text-accent font-medium animate-pulse">
                     Ready to commit change
                   </span>
                 )}
@@ -217,99 +220,104 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">
+            <label className="block text-xs font-medium text-muted mb-1.5">
               User Biography Overview
             </label>
+
             <textarea
               name="bio"
-              rows="3"
-              maxLength="300"
+              rows={3}
+              maxLength={300}
               value={formData.bio}
               onChange={handleInputChange}
               placeholder="Tell us a bit about your journey..."
-              className="w-full bg-white/5 border border-white/5 focus:border-violet-500/30 rounded-xl px-4 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none transition resize-none"
+              className="w-full rounded-xl border border-border bg-surface px-4 py-2 text-sm text-text placeholder:text-muted outline-none transition-colors focus:border-accent resize-none"
             />
           </div>
-        </div>
+        </Surface>
 
-        {/* SECTION 2: Environmental Layout Properties */}
-        <div className="bg-white/[0.02] border border-white/10 p-6 rounded-[24px] backdrop-blur-xl space-y-4">
-          <h2 className="text-sm font-semibold text-violet-400 tracking-wider uppercase">
-            Workspace Configurations
+        {/* SECTION 2 */}
+        <Surface elevation={2} className="p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-accent tracking-wider uppercase">
+            Appearance
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                Visual Layout Theme
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-muted mb-3">
+                Theme
               </label>
-              <select
-                name="themePreference"
+
+              <ThemeSelector
                 value={formData.themePreference}
-                onChange={handleInputChange}
-                className="w-full bg-slate-900 border border-white/5 focus:border-violet-500/30 rounded-xl px-4 py-2 text-sm text-slate-200 outline-none cursor-pointer transition"
-              >
-                <option value="dark">Dark Theme Sanctuary (Default)</option>
-                <option value="light">Light Theme Mode</option>
-              </select>
+                onChange={(themeId) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    themePreference: themeId,
+                  }))
+                }
+              />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">
+              <label className="block text-xs font-medium text-muted mb-1.5">
                 Target Dynamic Timezone Alignment
               </label>
+
               <input
                 type="text"
                 name="timezone"
                 value={formData.timezone}
                 onChange={handleInputChange}
-                className="w-full bg-white/5 border border-white/5 focus:border-violet-500/30 rounded-xl px-4 py-2 text-sm text-slate-200 outline-none transition"
+                className="w-full rounded-xl border border-border bg-surface px-4 py-2 text-sm text-text outline-none transition-colors focus:border-accent"
               />
             </div>
           </div>
-        </div>
+        </Surface>
 
-        {/* SECTION 3: Performance Goals Mapping */}
-        <div className="bg-white/[0.02] border border-white/10 p-6 rounded-[24px] backdrop-blur-xl space-y-4">
-          <h2 className="text-sm font-semibold text-violet-400 tracking-wider uppercase">
-            Telemetry Framework Goals
+        {/* SECTION 3 */}
+        <Surface elevation={2} className="p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-accent tracking-wider uppercase">
+            Goals
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                Core Journaling Core Target Statement
+              <label className="block text-xs font-medium text-muted mb-1.5">
+                Core Journaling Target
               </label>
+
               <input
                 type="text"
                 name="journalingGoal"
                 placeholder="e.g., Write down 3 wins every evening"
                 value={formData.journalingGoal}
                 onChange={handleInputChange}
-                className="w-full bg-white/5 border border-white/5 focus:border-violet-500/30 rounded-xl px-4 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none transition"
+                className="w-full rounded-xl border border-border bg-surface px-4 py-2 text-sm text-text placeholder:text-muted outline-none transition-colors focus:border-accent"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                Productivity Metric Milestone
+              <label className="block text-xs font-medium text-muted mb-1.5">
+                Productivity Goal
               </label>
+
               <input
                 type="text"
                 name="productivityGoal"
-                placeholder="e.g., Clear daily task list layout boundaries"
+                placeholder="e.g., Clear daily task list"
                 value={formData.productivityGoal}
                 onChange={handleInputChange}
-                className="w-full bg-white/5 border border-white/5 focus:border-violet-500/30 rounded-xl px-4 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none transition"
+                className="w-full rounded-xl border border-border bg-surface px-4 py-2 text-sm text-text placeholder:text-muted outline-none transition-colors focus:border-accent"
               />
             </div>
           </div>
-        </div>
+        </Surface>
 
-        {/* SECTION 4: Notifications Engine Toggles */}
-        <div className="bg-white/[0.02] border border-white/10 p-6 rounded-[24px] backdrop-blur-xl space-y-4">
-          <h2 className="text-sm font-semibold text-violet-400 tracking-wider uppercase">
-            Automated Reminder Configurations
+        {/* SECTION 4 */}
+        <Surface elevation={2} className="p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-accent tracking-wider uppercase">
+            Reminders
           </h2>
 
           <div className="space-y-3">
@@ -323,10 +331,11 @@ export default function SettingsPage() {
                     e.target.checked
                   )
                 }
-                className="w-4 h-4 rounded border-white/10 bg-white/5 text-violet-600 focus:ring-0 outline-none cursor-pointer"
+                className="w-4 h-4 rounded border-border bg-surface text-accent focus:ring-0 outline-none cursor-pointer"
               />
-              <span className="text-sm text-slate-300 group-hover:text-slate-200 transition">
-                Enable System Reflection Journal Reminders
+
+              <span className="text-sm text-text group-hover:text-accent transition-colors">
+                Enable Journal Reminders
               </span>
             </label>
 
@@ -337,40 +346,37 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   handleNestedReminderChange("todoReminder", e.target.checked)
                 }
-                className="w-4 h-4 rounded border-white/10 bg-white/5 text-violet-600 focus:ring-0 outline-none cursor-pointer"
+                className="w-4 h-4 rounded border-border bg-surface text-accent focus:ring-0 outline-none cursor-pointer"
               />
-              <span className="text-sm text-slate-300 group-hover:text-slate-200 transition">
-                Enable System Productivity Todo Reminders
+
+              <span className="text-sm text-text group-hover:text-accent transition-colors">
+                Enable Todo Reminders
               </span>
             </label>
 
             <div className="pt-2 max-w-[200px]">
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                Target Notification Broadcast Time
+              <label className="block text-xs font-medium text-muted mb-1.5">
+                Reminder Time
               </label>
+
               <input
                 type="time"
                 value={formData.reminderSettings.reminderTime}
                 onChange={(e) =>
                   handleNestedReminderChange("reminderTime", e.target.value)
                 }
-                className="w-full bg-white/5 border border-white/5 focus:border-violet-500/30 rounded-xl px-4 py-2 text-sm text-slate-200 outline-none transition [color-scheme:dark]"
+                className="w-full rounded-xl border border-border bg-surface px-4 py-2 text-sm text-text outline-none transition-colors focus:border-accent [color-scheme:dark]"
               />
             </div>
           </div>
-        </div>
+        </Surface>
 
-        {/* Action Button Row */}
         <div className="flex justify-end pt-2">
-          <Button
-            type="submit"
-            isLoading={isSaving}
-            className="shadow-lg shadow-violet-500/20 px-8"
-          >
-            Commit Changes
+          <Button type="submit" isLoading={isSaving} className="px-8">
+            Save Changes
           </Button>
         </div>
       </form>
-    </div>
+    </Surface>
   );
 }
