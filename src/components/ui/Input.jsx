@@ -4,11 +4,12 @@ function Input({ className, ...props }) {
   return (
     <input
       className={cn(
-        "w-full rounded-2xl border border-white/10",
-        "bg-white/5 px-4 py-3",
-        "text-white placeholder:text-slate-500",
-        "outline-none transition-all duration-200",
-        "focus:border-violet-400/40 focus:bg-white/7",
+        "w-full h-11 rounded-xl border border-[var(--border-default)]",
+        "bg-[var(--surface-primary)] px-4 text-sm",
+        "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
+        "outline-none transition-all duration-[var(--animation-default,220ms)]",
+        "focus:border-[var(--accent-primary)]/50 focus:bg-[var(--surface-secondary)]",
+        "disabled:opacity-50 disabled:cursor-not-allowed",
         className
       )}
       {...props}

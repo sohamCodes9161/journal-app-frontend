@@ -1,10 +1,13 @@
+import Typography from "@/components/ui/Typography";
+
 function PageHeader({ title, description }) {
   return (
     <div className="mb-8">
-      <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-
+      <Typography variant="h1">{title}</Typography>
       {description && (
-        <p className="mt-2 max-w-2xl text-slate-400">{description}</p>
+        <Typography variant="muted" className="mt-2 max-w-2xl">
+          {description}
+        </Typography>
       )}
     </div>
   );

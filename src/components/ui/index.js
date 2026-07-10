@@ -4,3 +4,7 @@ export { default as Card } from "./Card";
 export { default as Container } from "./Container";
 export { default as Spinner } from "./Spinner";
 export { default as PageHeader } from "./PageHeader";
+export { default as Surface } from "./Surface";
+export { default as Stack } from "./Stack";
+export { default as Section } from "./Section";
+export { default as Page } from "./Page";
