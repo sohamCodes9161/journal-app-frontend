@@ -5,7 +5,7 @@ import MobileNav from "@/components/navigation/MobileNav";
 import { JournalThemeProvider } from "@/features/journal/context/JournalThemeContext";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 
-function DashboardContent() {
+export default function DashboardLayout() {
   const location = useLocation();
 
   const isFocusMode =
