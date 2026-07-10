@@ -2,6 +2,7 @@ import { useState } from "react";
 import { getThemeConfig } from "../utils/journalThemes";
 import { useNavigate } from "react-router-dom";
 import DraftCard from "../components/DraftCard";
+import { Surface } from "@/components/ui";
 
 import {
   getDraftIndex,
@@ -45,7 +46,7 @@ export default function DraftJournalPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
+    <Surface className="p-6">
       <h1 className="text-3xl font-bold mb-6">Draft Journals</h1>
 
       {drafts.length === 0 ? (
@@ -56,12 +57,12 @@ export default function DraftJournalPage() {
             <DraftCard
               key={draft.id}
               draft={draft}
-              onDelete={handleDelete}
-              onRename={handleRename}
+              onRename={() => handleRename(draft)}
+              onDelete={() => handleDelete(draft)}
             />
           ))}
         </div>
       )}
-    </div>
+    </Surface>
   );
 }

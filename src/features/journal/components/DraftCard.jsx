@@ -1,7 +1,12 @@
 import { useNavigate } from "react-router-dom";
-import { getThemeConfig } from "../utils/journalThemes";
+import Surface from "@/components/ui/Surface";
+import {
+  HiOutlinePencilSquare,
+  HiOutlineTrash,
+  HiOutlinePencil,
+} from "react-icons/hi2";
 
-const MOOD_EMOJIS = {
+const MOODS = {
   happy: "😊",
   sad: "😢",
   neutral: "😐",
@@ -16,50 +21,54 @@ const MOOD_EMOJIS = {
 export default function DraftCard({ draft, onDelete, onRename }) {
   const navigate = useNavigate();
 
-  const theme = getThemeConfig(draft.themePreset);
-
   return (
-    <div
-      className={`rounded-2xl border p-5 transition hover:shadow-lg ${theme.borderClass} ${theme.bgClass}`}
+    <Surface
+      variant="elevated"
+      className="p-5 transition-all duration-[var(--animation-default,220ms)] hover:-translate-y-0.5"
     >
-      <div className="flex justify-between items-start gap-4">
+      <div className="flex justify-between gap-4">
         <div
-          className="flex-1 cursor-pointer"
+          className="flex-1 min-w-0 cursor-pointer"
           onClick={() => navigate(`/app/journals/new?draft=${draft.id}`)}
         >
-          <h2 className={`text-xl font-bold ${theme.textClass}`}>
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] truncate">
             {draft.title || "Untitled Journal"}
           </h2>
 
-          <p className={`mt-2 text-sm ${theme.mutedClass}`}>
-            {draft.preview || "No preview available"}
+          <p className="text-[var(--text-secondary)] mt-2 line-clamp-2">
+            {draft.preview || "No preview yet"}
           </p>
 
-          <p className={`mt-4 text-xs ${theme.mutedClass}`}>
-            Last edited • {new Date(draft.updatedAt).toLocaleString()}
-          </p>
+          <div className="mt-5 flex items-center gap-2 text-xs text-[var(--text-muted)]">
+            <HiOutlinePencilSquare />
+            Last edited {new Date(draft.updatedAt).toLocaleString()}
+          </div>
         </div>
 
-        <div className="flex flex-col items-end gap-3">
-          <span className="text-2xl">{MOOD_EMOJIS[draft.mood] || "📖"}</span>
+        <div className="flex flex-col items-end justify-between">
+          <div className="text-3xl">{MOODS[draft.mood] || "📖"}</div>
 
           <div className="flex gap-2">
             <button
-              onClick={() => onRename(draft)}
-              className="text-xs px-3 py-1 rounded-lg bg-slate-200 hover:bg-slate-300"
+              type="button"
+              onClick={onRename}
+              className="rounded-lg border border-border bg-surface p-2 text-muted hover:text-accent hover:border-accent transition"
+              title="Rename Draft"
             >
-              Rename
+              <HiOutlinePencil className="h-4 w-4" />
             </button>
 
             <button
-              onClick={() => onDelete(draft)}
-              className="text-xs px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600"
+              type="button"
+              onClick={onDelete}
+              className="rounded-lg border border-border bg-surface p-2 text-muted hover:text-red-500 hover:border-red-500 transition"
+              title="Delete Draft"
             >
-              Delete
+              <HiOutlineTrash className="h-4 w-4" />
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </Surface>
   );
 }
