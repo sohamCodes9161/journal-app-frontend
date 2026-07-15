@@ -5,17 +5,20 @@ import API from "@/services/api";
 import { toast } from "react-hot-toast";
 import { Button, Surface } from "@/components/ui";
 import ThemeSelector from "@/components/settings/ThemeSelector";
+import { useTheme } from "@/theme/ThemeProvider";
 export default function SettingsPage() {
   const { user, setUser } = React.useContext(AuthContext);
   const [isSaving, setIsSaving] = useState(false);
-
+  const { setTheme, resetPreview } = useTheme();
   const [avatarFile, setAvatarFile] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Change fallback from "dark" to "midnight-ink"
   const [formData, setFormData] = useState({
     username: "",
     profilePicture: "",
     bio: "",
-    themePreference: "dark",
+    themePreference: "midnight-ink", // <-- Changed from "dark"
     timezone: "UTC",
     journalingGoal: "",
     productivityGoal: "",
@@ -26,13 +29,19 @@ export default function SettingsPage() {
     },
   });
 
+  const didSave = useRef(false);
+
   useEffect(() => {
     if (user) {
+      // Normalize any database default "dark" preference to "midnight-ink"
+      let userPref = user.themePreference;
+      if (userPref === "dark") userPref = "midnight-ink";
+
       setFormData({
         username: user.username || "",
         profilePicture: user.profilePicture || "",
         bio: user.bio || "",
-        themePreference: user.themePreference || "dark",
+        themePreference: userPref || "midnight-ink", // <-- Normalized preference
         timezone: user.timezone || "UTC",
         journalingGoal: user.journalingGoal || "",
         productivityGoal: user.productivityGoal || "",
@@ -46,10 +55,22 @@ export default function SettingsPage() {
     }
   }, [user]);
 
-  const handleInputChange = (e) => {
+  // Clean up visual previews if the user leaves without saving
+  useEffect(() => {
+    return () => {
+      if (!didSave.current) {
+        resetPreview();
+      }
+    };
+  }, [resetPreview]);
+
+  function handleInputChange(e) {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  }
 
   const handleNestedReminderChange = (field, value) => {
     setFormData((prev) => ({
@@ -65,7 +86,6 @@ export default function SettingsPage() {
     e.preventDefault();
     setIsSaving(true);
 
-    // Compute dirty/changed fields only
     const updatedFields = {};
     const keysToCompare = [
       "username",
@@ -102,7 +122,6 @@ export default function SettingsPage() {
       };
     }
 
-    // ─── FIX 1: INCLUDE AVATAR FILE IN CHANGE DETECTION ───────────────────
     if (Object.keys(updatedFields).length === 0 && !avatarFile) {
       toast.error("No adjustments detected. Profile data remains accurate.");
       setIsSaving(false);
@@ -111,13 +130,10 @@ export default function SettingsPage() {
 
     try {
       const multipartPayload = new FormData();
-
-      // ─── FIX 2: CORRECTED TYPO ("avater" -> "avatar") ─────────────────────
       if (avatarFile) {
         multipartPayload.append("avatar", avatarFile);
       }
 
-      // Append your other updated fields by serializing objects/primitives cleanly
       Object.keys(updatedFields).forEach((key) => {
         if (typeof updatedFields[key] === "object") {
           multipartPayload.append(key, JSON.stringify(updatedFields[key]));
@@ -126,7 +142,6 @@ export default function SettingsPage() {
         }
       });
 
-      // ─── FIX 3: SEND THE MULTIPART PAYLOAD OBJECT WITH MULTIPART HEADERS ───
       const { data } = await API.patch("/auth/settings", multipartPayload, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -134,8 +149,15 @@ export default function SettingsPage() {
       });
 
       if (data.success) {
+        didSave.current = true;
+
+        // Permanent commit: Write theme change to your global state
+        if (updatedFields.themePreference) {
+          setTheme(updatedFields.themePreference);
+        }
+
         setUser(data.data);
-        setAvatarFile(null); // Reset pending selection file
+        setAvatarFile(null);
         toast.success("Preferences preserved smoothly.");
       }
     } catch (error) {
@@ -146,6 +168,7 @@ export default function SettingsPage() {
       setIsSaving(false);
     }
   };
+
   return (
     <Surface className="h-full overflow-y-auto max-w-4xl mx-auto px-4 pb-28">
       <PageHeader
