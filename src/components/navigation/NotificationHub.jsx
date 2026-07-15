@@ -1,3 +1,4 @@
+// src/components/navigation/NotificationHub.jsx
 import { useState, useRef, useEffect } from "react";
 import { useTodos } from "../../features/todos/hooks/useTodos";
 import { useUpdateTodo } from "../../features/todos/hooks/useUpdateTodo";
@@ -50,37 +51,82 @@ export default function NotificationHub() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Trigger Bell Button */}
+      {/* 🔔 Trigger Bell Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.05] hover:border-white/10 transition-all duration-300 flex items-center justify-center outline-none"
+        style={{
+          backgroundColor: "var(--overlay-light, rgba(255, 255, 255, 0.03))",
+          borderColor: "var(--border-subtle)",
+          color: "var(--text-primary)",
+        }}
+        className="relative p-2 rounded-xl border transition-all duration-300 flex items-center justify-center outline-none cursor-pointer hover:opacity-80"
       >
         <span className="text-base select-none">🔔</span>
         {hasNotifications && (
-          <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-violet-400 animate-ping" />
+          <span
+            style={{ backgroundColor: "var(--accent-primary)" }}
+            className="absolute top-1 right-1 h-2 w-2 rounded-full animate-ping"
+          />
         )}
       </button>
 
-      {/* Glassmorphic Dropdown Drawer Wrapper */}
+      {/* 🌟 Glassmorphic Dropdown Drawer Wrapper */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border border-white/10 bg-slate-900/95 backdrop-blur-xl p-4 shadow-2xl shadow-black/80 z-50 space-y-3">
-          <div className="flex items-center justify-between border-b border-white/5 pb-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+        <div
+          style={{
+            backgroundColor: "var(--surface-elevated)",
+            borderColor: "var(--border-subtle)",
+            boxShadow:
+              "var(--shadow-popup, 0 10px 25px -5px rgba(0, 0, 0, 0.15))",
+            backdropFilter: "blur(var(--blur-modal, 24px))",
+            WebkitBackdropFilter: "blur(var(--blur-modal, 24px))",
+          }}
+          className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border p-4 z-50 space-y-3"
+        >
+          {/* Header */}
+          <div
+            style={{ borderColor: "var(--border-subtle)" }}
+            className="flex items-center justify-between border-b pb-2"
+          >
+            <h3
+              style={{ color: "var(--text-muted)" }}
+              className="text-xs font-bold uppercase tracking-wider"
+            >
               Focus Center Alerts
             </h3>
-            <span className="text-[10px] text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-full font-medium">
+            <span
+              style={{
+                color: "var(--accent-primary)",
+                backgroundColor:
+                  "var(--overlay-light, rgba(255, 255, 255, 0.05))",
+              }}
+              className="text-[10px] px-2 py-0.5 rounded-full font-medium border"
+            >
               {staleTasks.length} pending items
             </span>
           </div>
 
           {/* Evening System Notice Alert Box */}
           {isEvening && hasActiveTodayTasks && (
-            <div className="p-3 rounded-xl bg-gradient-to-r from-fuchsia-500/10 to-violet-500/10 border border-violet-500/20 animate-pulse">
-              <p className="text-[11px] text-fuchsia-300 font-medium">
+            <div
+              style={{
+                background:
+                  "linear-gradient(to right, var(--overlay-light), transparent)",
+                borderColor: "var(--border-default)",
+              }}
+              className="p-3 rounded-xl border animate-pulse"
+            >
+              <p
+                style={{ color: "var(--accent-primary)" }}
+                className="text-[11px] font-medium"
+              >
                 🌙 Evening Focus Alignment
               </p>
-              <p className="text-[10px] text-slate-400 mt-0.5 leading-normal">
+              <p
+                style={{ color: "var(--text-secondary)" }}
+                className="text-[10px] mt-0.5 leading-normal"
+              >
                 The day is ending soon. Fulfill your outstanding actions or lock
                 down reflections inside your Sanctuary Journal before the reset.
               </p>
@@ -88,12 +134,18 @@ export default function NotificationHub() {
           )}
 
           {staleTasks.length === 0 ? (
-            <div className="py-6 text-center text-xs text-slate-500">
+            <div
+              style={{ color: "var(--text-muted)" }}
+              className="py-6 text-center text-xs"
+            >
               ✨ Ground clean. All system coordinates aligned.
             </div>
           ) : (
             <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-              <p className="text-[11px] text-slate-400 leading-relaxed">
+              <p
+                style={{ color: "var(--text-secondary)" }}
+                className="text-[11px] leading-relaxed"
+              >
                 <strong>Attention:</strong> You have active intentions left
                 unfinished from previous days. How should we process them?
               </p>
@@ -101,14 +153,26 @@ export default function NotificationHub() {
               {staleTasks.map((task) => (
                 <div
                   key={task._id}
-                  className="p-3 rounded-xl border border-white/5 bg-white/[0.02] space-y-2.5 transition-all hover:border-white/10"
+                  style={{
+                    backgroundColor:
+                      "var(--overlay-light, rgba(0, 0, 0, 0.02))",
+                    borderColor: "var(--border-subtle)",
+                  }}
+                  className="p-3 rounded-xl border space-y-2.5 transition-all"
                 >
-                  <p className="text-xs font-medium text-slate-200 truncate">
+                  <p
+                    style={{ color: "var(--text-primary)" }}
+                    className="text-xs font-medium truncate"
+                  >
                     ⚠️ {task.title}
                   </p>
 
                   {/* Interactive Option Matrix */}
-                  <div className="grid grid-cols-3 gap-1 pt-1 border-t border-white/[0.03]">
+                  <div
+                    style={{ borderColor: "var(--border-subtle)" }}
+                    className="grid grid-cols-3 gap-1 pt-1 border-t"
+                  >
+                    {/* Rollover Button */}
                     <button
                       type="button"
                       onClick={() => {
@@ -118,10 +182,17 @@ export default function NotificationHub() {
                         });
                         toast.success("Rolled over to today ☀️");
                       }}
-                      className="text-[10px] py-1 rounded bg-white/5 text-slate-300 hover:bg-violet-500/20 hover:text-violet-200 transition-all font-medium text-center"
+                      style={{
+                        backgroundColor:
+                          "var(--overlay-light, rgba(0, 0, 0, 0.04))",
+                        color: "var(--text-secondary)",
+                      }}
+                      className="text-[10px] py-1 rounded transition-all font-medium text-center cursor-pointer hover:bg-[var(--accent-primary)] hover:text-[var(--text-inverse)]"
                     >
                       ☀️ Rollover
                     </button>
+
+                    {/* Park Button */}
                     <button
                       type="button"
                       onClick={() => {
@@ -131,17 +202,29 @@ export default function NotificationHub() {
                         });
                         toast.success("Parked to Weekly scope");
                       }}
-                      className="text-[10px] py-1 rounded bg-white/5 text-slate-300 hover:bg-amber-500/10 hover:text-amber-300 transition-all font-medium text-center"
+                      style={{
+                        backgroundColor:
+                          "var(--overlay-light, rgba(0, 0, 0, 0.04))",
+                        color: "var(--text-secondary)",
+                      }}
+                      className="text-[10px] py-1 rounded transition-all font-medium text-center cursor-pointer hover:bg-[var(--warning,orange)] hover:text-white"
                     >
                       🗓️ Park
                     </button>
+
+                    {/* Discard Button */}
                     <button
                       type="button"
                       onClick={() => {
                         deleteMutation.mutate(task._id);
                         toast.success("Intention discarded peacefully");
                       }}
-                      className="text-[10px] py-1 rounded bg-white/5 text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 transition-all font-medium text-center"
+                      style={{
+                        backgroundColor:
+                          "var(--overlay-light, rgba(0, 0, 0, 0.04))",
+                        color: "var(--text-muted)",
+                      }}
+                      className="text-[10px] py-1 rounded transition-all font-medium text-center cursor-pointer hover:bg-[var(--danger,red)] hover:text-white"
                     >
                       ✕ Discard
                     </button>
