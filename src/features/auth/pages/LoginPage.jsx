@@ -42,11 +42,6 @@ function LoginPage() {
 
     onSuccess: (data) => {
       setUser(data.user);
-
-      if (data.user.themePreference) {
-        localStorage.setItem("theme", data.user.themePreference);
-      }
-
       navigate("/app");
     },
 
