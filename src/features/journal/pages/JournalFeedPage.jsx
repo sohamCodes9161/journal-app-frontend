@@ -98,16 +98,18 @@ function JournalFeedPage() {
     <Page className="h-full overflow-y-auto overflow-x-hidden pb-28 w-full max-w-full">
       <Stack gap="lg" className="w-full min-w-0 max-w-full">
         {/* Top Header Row Structure */}
-        <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-5 gap-4">
-          <div className="flex flex-col gap-2 min-w-0">
+        <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-4 gap-3 w-full min-w-0">
+          <div className="flex flex-col gap-1.5 min-w-0 flex-1">
             <PageHeader
               title="Your Journals"
               description="Moments, reflections, and thoughts captured over time."
             />
 
             {dateParam && (
-              <div className="flex items-center gap-2 self-start rounded-full border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/10 px-3 py-1 text-xs text-[var(--accent-primary)] backdrop-blur-sm">
-                <span className="font-mono">Showing Day: {dateParam}</span>
+              <div className="flex items-center gap-2 self-start rounded-full border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/10 px-3 py-1 text-xs text-[var(--accent-primary)] backdrop-blur-sm max-w-full min-w-0">
+                <span className="font-mono truncate">
+                  Showing Day: {dateParam}
+                </span>
                 <button
                   onClick={() => {
                     const newParams = new URLSearchParams(searchParams);
@@ -115,7 +117,7 @@ function JournalFeedPage() {
                     newParams.set("page", "1");
                     setSearchParams(newParams);
                   }}
-                  className="ml-1 font-bold text-[var(--accent-primary)] hover:opacity-80 transition-opacity cursor-pointer"
+                  className="ml-1 font-bold text-[var(--accent-primary)] hover:opacity-80 transition-opacity cursor-pointer shrink-0"
                   title="Clear day filter"
                 >
                   ✕
@@ -124,7 +126,7 @@ function JournalFeedPage() {
             )}
           </div>
 
-          <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             {drafts.length > 0 && (
               <Link
                 to="/app/journals/drafts"
@@ -155,19 +157,19 @@ function JournalFeedPage() {
           hasActiveFilters ? (
             <Section
               variant="subtle"
-              className="flex min-h-[40vh] flex-col items-center justify-center text-center p-8 border-dashed"
+              className="flex min-h-[40vh] flex-col items-center justify-center text-center p-8 border-dashed w-full min-w-0"
             >
               <p className="text-base font-medium text-[var(--text-muted)]">
                 No pathways match your filtering parameters
               </p>
             </Section>
           ) : (
-            <Section className="relative flex min-h-[55vh] flex-col items-center justify-center overflow-hidden px-8 py-16 text-center">
+            <Section className="relative flex min-h-[55vh] flex-col items-center justify-center overflow-hidden px-8 py-16 text-center w-full min-w-0">
               <div className="relative z-10 max-w-xl">
                 <h2 className="text-3xl font-semibold tracking-tight text-[var(--text-primary)]">
                   Your thoughts will begin to gather here
                 </h2>
-                <Link to="/app/journals/new">
+                <Link to="/app/journals/new" className="inline-block mt-4">
                   <Button variant="primary">Write Your First Journal</Button>
                 </Link>
               </div>
@@ -175,7 +177,7 @@ function JournalFeedPage() {
           )
         ) : (
           <>
-            <div className="grid gap-6">
+            <div className="grid gap-4 sm:gap-6 w-full min-w-0">
               {data.journals.map((journal) => (
                 <JournalCard
                   key={journal.id || journal._id}
