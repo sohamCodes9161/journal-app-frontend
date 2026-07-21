@@ -1,5 +1,5 @@
 // src/features/journal/pages/JournalDetailPage.jsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import JournalEditor from "../components/editor/JournalEditor";
@@ -7,11 +7,15 @@ import ThemeSelector from "../components/editor/ThemeSelector";
 import useJournal from "../hooks/useJournal";
 import useUpdateJournal from "../hooks/useUpdateJournal";
 import useDeleteJournal from "../hooks/useDeleteJournal";
+
+// CORRECTED IMPORT PATH
 import {
-  saveJournalDraft,
-  loadJournalDraft,
-  clearJournalDraft,
-} from "../utils/journalDraftStorage";
+  saveDraft,
+  loadDraft,
+  clearDraft,
+  hasDraft,
+} from "../draftStorage/storage";
+
 import { JOURNAL_THEMES } from "../utils/journalThemes";
 import { JournalThemeProvider } from "../context/JournalThemeContext";
 import { uploadImage } from "../api/uploadApi";
@@ -21,7 +25,6 @@ export default function JournalDetailPage() {
   const { journalId } = useParams();
   const editorRef = useRef(null);
 
-  // Tracks uploaded local file binaries during edits
   const pendingFilesRef = useRef(new Map());
 
   const { data: journal, isLoading, isError } = useJournal(journalId);
@@ -35,47 +38,59 @@ export default function JournalDetailPage() {
   const [selectedTheme, setSelectedTheme] = useState("warm-parchment");
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Tracks local draft state versions & cloud synchronization progress
   const [syncStatus, setSyncStatus] = useState("saved");
   const [contentVersion, setContentVersion] = useState(0);
 
-  // 1. Dual Hydration & Recovery Prompt Hook
+  const applyLiveDatabaseValues = useCallback(() => {
+    if (!journal) return;
+    setTitle(journal.title || "");
+    setMood(journal.mood || "neutral");
+    setInitialEditorContent(journal.content || null);
+  }, [journal]);
+
+  // 1. Initial Load & Draft Restoration Lifecycle
   useEffect(() => {
     if (!journal || isInitialized) return;
 
-    const existingDraft = loadJournalDraft(journalId);
+    const existingDraft = loadDraft(journalId);
 
-    // Check if a local draft exists and is actually different from the server database
     if (existingDraft) {
-      const hasChanges =
-        existingDraft.title !== journal.title ||
+      const isTitleDifferent =
+        (existingDraft.title || "").trim() !== (journal.title || "").trim();
+      const isContentDifferent =
         JSON.stringify(existingDraft.content) !==
-          JSON.stringify(journal.content);
+        JSON.stringify(journal.content);
 
-      if (hasChanges) {
+      if (isTitleDifferent || isContentDifferent) {
+        const formattedTime = existingDraft.updatedAt
+          ? new Date(existingDraft.updatedAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "earlier";
+
         const restoreDraft = window.confirm(
-          "We found unsaved changes for this entry. Would you like to restore your draft?"
+          `We found unsaved edits from ${formattedTime}. Would you like to restore your draft?`
         );
 
         if (restoreDraft) {
           setTitle(existingDraft.title || "");
-          setMood(journal.mood || "neutral");
+          setMood(existingDraft.mood || journal.mood || "neutral");
           setInitialEditorContent(existingDraft.content || null);
-          setIsEditing(true); // Automatically open in edit mode if they restore draft!
+          setIsEditing(true);
           setSyncStatus("local-saved");
         } else {
-          // Reject draft: load standard database values and wipe the stale draft
+          clearDraft(journalId);
           applyLiveDatabaseValues();
-          clearJournalDraft(journalId);
         }
       } else {
+        clearDraft(journalId);
         applyLiveDatabaseValues();
       }
     } else {
       applyLiveDatabaseValues();
     }
 
-    // Set Theme
     if (journal.styleSettings?.themePreset) {
       const parsedTheme = journal.styleSettings.themePreset;
       setSelectedTheme(
@@ -86,15 +101,9 @@ export default function JournalDetailPage() {
     }
 
     setIsInitialized(true);
-  }, [journal, journalId, isInitialized]);
+  }, [journal, journalId, isInitialized, applyLiveDatabaseValues]);
 
-  const applyLiveDatabaseValues = () => {
-    setTitle(journal.title || "");
-    setMood(journal.mood || "neutral");
-    setInitialEditorContent(journal.content || null);
-  };
-
-  // 2. Active Sync Status Auto-Saving Effect
+  // 2. Debounced Auto-Save Effect (Only in Edit Mode)
   useEffect(() => {
     if (!isEditing || !isInitialized) return;
 
@@ -102,16 +111,63 @@ export default function JournalDetailPage() {
       setSyncStatus("saving");
     }
 
-    const timeout = setTimeout(() => {
-      const content = editorRef.current?.getJSON();
-      if (!content) return;
+    const timer = setTimeout(() => {
+      const currentContent = editorRef.current?.getJSON();
+      if (!currentContent) return;
 
-      saveJournalDraft({ journalId, title, content });
-      setSyncStatus("local-saved");
+      const isTitleChanged = title.trim() !== (journal?.title || "").trim();
+      const isContentChanged =
+        JSON.stringify(currentContent) !== JSON.stringify(journal?.content);
+      const isMoodChanged = mood !== (journal?.mood || "neutral");
+
+      if (isTitleChanged || isContentChanged || isMoodChanged) {
+        saveDraft(journalId, {
+          title: title.trim(),
+          content: currentContent,
+          mood,
+          type: "edit",
+          themePreset: selectedTheme,
+          preview: title.trim() || "Untitled Edit",
+        });
+        setSyncStatus("local-saved");
+      } else {
+        clearDraft(journalId);
+        setSyncStatus("saved");
+      }
     }, 1000);
 
-    return () => clearTimeout(timeout);
-  }, [title, contentVersion, isEditing, journalId, isInitialized]);
+    return () => clearTimeout(timer);
+  }, [
+    title,
+    mood,
+    contentVersion,
+    isEditing,
+    journalId,
+    isInitialized,
+    journal,
+    selectedTheme,
+    syncStatus,
+  ]);
+
+  // 3. Safety Net: Save draft before tab close / navigation
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (!isEditing) return;
+      const currentContent = editorRef.current?.getJSON();
+      if (!currentContent) return;
+
+      saveDraft(journalId, {
+        title: title.trim(),
+        content: currentContent,
+        mood,
+        type: "edit",
+        themePreset: selectedTheme,
+      });
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isEditing, journalId, title, mood, selectedTheme]);
 
   const themeConfig =
     JOURNAL_THEMES.find((t) => t.id === selectedTheme) || JOURNAL_THEMES[0];
@@ -126,15 +182,12 @@ export default function JournalDetailPage() {
       if (rawFile) {
         try {
           const uploadResult = await uploadImage(rawFile);
-          const permanentUrl = uploadResult?.url;
-          const databaseMediaId = uploadResult?.mediaId;
-
           return {
             ...node,
             attrs: {
               ...node.attrs,
-              src: permanentUrl,
-              mediaId: databaseMediaId,
+              src: uploadResult?.url,
+              mediaId: uploadResult?.mediaId,
             },
           };
         } catch (uploadError) {
@@ -161,19 +214,17 @@ export default function JournalDetailPage() {
       const content = editorRef.current?.getJSON();
       if (!content) return toast.error("Editor content missing");
 
-      let fullyUploadedContent = content;
       setSyncStatus("cloud-saving");
+      let fullyUploadedContent = content;
 
-      const uploadToastId = toast.loading(
-        "Uploading new entry images safely..."
-      );
+      const uploadToastId = toast.loading("Uploading images safely...");
       try {
         fullyUploadedContent = await processAndUploadImages(content);
         toast.dismiss(uploadToastId);
       } catch (err) {
         toast.dismiss(uploadToastId);
         setSyncStatus("local-saved");
-        return toast.error("Failed to upload entry images. Please save again.");
+        return toast.error("Failed to upload images. Please try saving again.");
       }
 
       await updateJournalMutation.mutateAsync({
@@ -186,27 +237,28 @@ export default function JournalDetailPage() {
         },
       });
 
+      clearDraft(journalId);
       pendingFilesRef.current.clear();
-      clearJournalDraft(journalId); // Wipe draft clean upon successful database commit
       setSyncStatus("saved");
       toast.success("Journal saved successfully ✨");
       setIsEditing(false);
     } catch (error) {
       setSyncStatus("local-saved");
-      toast.error("Failed to save journal");
+      toast.error("Failed to save journal to database.");
     }
   }
 
-  // Handle Explicit Discarding of Unsaved Changes on Cancel
   const handleCancel = () => {
-    const confirmCancel = window.confirm(
-      "Discard your current unsaved edits? This will delete your local draft."
-    );
-    if (!confirmCancel) return;
+    if (hasDraft(journalId)) {
+      const confirmCancel = window.confirm(
+        "Discard unsaved changes? This will delete your local draft."
+      );
+      if (!confirmCancel) return;
+    }
 
+    clearDraft(journalId);
     pendingFilesRef.current.clear();
-    clearJournalDraft(journalId); // Clean up local storage
-    applyLiveDatabaseValues(); // Reset inputs back to database state
+    applyLiveDatabaseValues();
     setIsEditing(false);
     setSyncStatus("saved");
   };
@@ -215,7 +267,7 @@ export default function JournalDetailPage() {
     if (!window.confirm("Permanently delete this journal entry?")) return;
     try {
       await deleteJournalMutation.mutateAsync(journalId);
-      clearJournalDraft(journalId); // Always clean up garbage drafts
+      clearDraft(journalId);
       toast.success("Entry removed");
       navigate("/app/journals");
     } catch (error) {
@@ -244,14 +296,13 @@ export default function JournalDetailPage() {
   return (
     <JournalThemeProvider themePreset={selectedTheme}>
       <div
-        className={`fixed inset-0 flex flex-col overflow-hidden transition-colors duration-500 ${themeConfig.bgClass} ${themeConfig.textClass} `}
-        style={{
-          height: "100dvh",
-        }}
+        id="journal-fixed-container"
+        className={`fixed inset-0 flex flex-col overflow-hidden transition-colors duration-500 ${themeConfig.bgClass} ${themeConfig.textClass}`}
+        style={{ height: "100dvh" }}
       >
-        <div className="w-full flex-1 min-h-0 flex flex-col px-4 sm:px-8 py-6 ">
+        <div className="w-full flex-1 min-h-0 flex flex-col px-4 sm:px-8 py-6">
           <div className="flex flex-col flex-1 min-h-0 max-w-2xl mx-auto w-full">
-            {/* Unified Action Header Bar */}
+            {/* Action Header */}
             <div className="flex items-center justify-between w-full h-12 mb-6 shrink-0">
               <div className="flex items-center gap-4">
                 {isEditing ? (
@@ -268,50 +319,48 @@ export default function JournalDetailPage() {
                   </div>
                 )}
 
-                {/* Live Visual Sync Engine Dot Display */}
                 {isEditing && (
-                  <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold tracking-wide opacity-50 select-none transition-all duration-300">
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide opacity-70 select-none">
                     {syncStatus === "saving" && (
                       <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                         <span>Saving draft...</span>
                       </>
                     )}
                     {syncStatus === "local-saved" && (
                       <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
                         <span>Draft saved locally</span>
                       </>
                     )}
                     {syncStatus === "cloud-saving" && (
                       <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-ping" />
-                        <span>Syncing with cloud...</span>
+                        <span className="w-2 h-2 rounded-full bg-violet-500 animate-ping" />
+                        <span>Syncing to database...</span>
                       </>
                     )}
                     {syncStatus === "saved" && (
                       <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
-                        <span>Cloud synced ✨</span>
+                        <span className="w-2 h-2 rounded-full bg-violet-400" />
+                        <span>Synced</span>
                       </>
                     )}
                   </div>
                 )}
               </div>
 
-              {/* Header Operations Control Block */}
               <div className="flex items-center gap-2">
                 {isEditing ? (
                   <>
                     <button
                       onClick={handleCancel}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                      className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSave}
-                      className="text-xs font-semibold px-4 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white shadow-sm transition-colors cursor-pointer"
+                      className="text-xs font-semibold px-4 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white shadow-sm transition-colors"
                     >
                       Save
                     </button>
@@ -320,13 +369,13 @@ export default function JournalDetailPage() {
                   <>
                     <button
                       onClick={() => setIsEditing(true)}
-                      className="text-xs font-semibold px-4 py-1.5 rounded-xl border border-black/10 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                      className="text-xs font-semibold px-4 py-1.5 rounded-xl border border-black/10 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                     >
                       Edit
                     </button>
                     <button
                       onClick={handleDelete}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-xl text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      className="text-xs font-semibold px-3 py-1.5 rounded-xl text-rose-500 hover:bg-rose-500/10 transition-colors"
                     >
                       Delete
                     </button>
@@ -335,7 +384,7 @@ export default function JournalDetailPage() {
               </div>
             </div>
 
-            {/* Continuous Canvas Block */}
+            {/* Editor Container */}
             <div className="w-full flex-1 flex flex-col min-h-0 gap-3">
               {isEditing ? (
                 <input
