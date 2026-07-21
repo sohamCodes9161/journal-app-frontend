@@ -95,8 +95,8 @@ function JournalFeedPage() {
   const drafts = getDraftIndex();
 
   return (
-    <Page className="h-full overflow-y-auto pb-28">
-      <Stack gap="lg">
+    <Page className="h-full overflow-y-auto overflow-x-hidden pb-28 w-full max-w-full">
+      <Stack gap="lg" className="w-full min-w-0 max-w-full">
         {/* Top Header Row Structure */}
         <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-5 gap-4">
           <div className="flex flex-col gap-2 min-w-0">
