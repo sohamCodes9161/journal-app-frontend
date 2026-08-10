@@ -82,7 +82,7 @@ export default function NotificationHub() {
             backdropFilter: "blur(var(--blur-modal, 24px))",
             WebkitBackdropFilter: "blur(var(--blur-modal, 24px))",
           }}
-          className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border p-4 z-50 space-y-3"
+          className="absolute -right-12 sm:right-0 mt-2 w-[calc(100vw-2rem)] max-w-xs sm:max-w-md sm:w-96 rounded-2xl border p-4 z-50 space-y-3"
         >
           {/* Header */}
           <div
