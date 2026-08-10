@@ -1,11 +1,14 @@
 import Typography from "@/components/ui/Typography";
 
-function PageHeader({ title, description }) {
+function PageHeader({ title, description, className = "" }) {
   return (
-    <div className="mb-8">
+    <div className={className}>
       <Typography variant="h1">{title}</Typography>
       {description && (
-        <Typography variant="muted" className="mt-2 max-w-2xl">
+        <Typography
+          variant="muted"
+          className="mt-1 max-w-2xl text-xs sm:text-sm"
+        >
           {description}
         </Typography>
       )}

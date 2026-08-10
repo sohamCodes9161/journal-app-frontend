@@ -112,17 +112,17 @@ export default function JournalFilters({ filters, onFilterChange }) {
         </div>
 
         {/* Date Inputs Range */}
-        <div className="flex flex-1 items-center justify-between min-w-0 w-full h-10 rounded-xl border border-[var(--border-default)] bg-[var(--surface-primary)] focus-within:border-[var(--accent-primary)]/50 px-2.5 transition-all">
+        <div className="flex flex-1 items-center justify-between min-w-0 w-full min-h-[2.5rem] rounded-xl border border-[var(--border-default)] bg-[var(--surface-primary)] focus-within:border-[var(--accent-primary)]/50 px-2 sm:px-2.5 transition-all overflow-hidden">
           <Calendar className="text-[var(--text-muted)] w-3.5 h-3.5 shrink-0 mr-1" />
 
           <input
             type="date"
             value={localStartDate}
             onChange={(e) => setLocalStartDate(e.target.value)}
-            className="bg-transparent text-[11px] sm:text-xs text-[var(--text-primary)] outline-none min-w-0 w-full cursor-pointer [color-scheme:dark] dark:[color-scheme:dark] light:[color-scheme:light]"
+            className="bg-transparent text-[10px] xs:text-[11px] sm:text-xs text-[var(--text-primary)] outline-none w-0 flex-1 min-w-0 cursor-pointer [color-scheme:dark] dark:[color-scheme:dark] light:[color-scheme:light]"
           />
 
-          <span className="text-[var(--text-muted)] text-[10px] font-medium px-1 shrink-0">
+          <span className="text-[var(--text-muted)] text-[10px] font-medium px-0.5 sm:px-1 shrink-0">
             to
           </span>
 
@@ -131,7 +131,7 @@ export default function JournalFilters({ filters, onFilterChange }) {
             value={localEndDate}
             min={localStartDate}
             onChange={(e) => setLocalEndDate(e.target.value)}
-            className="bg-transparent text-[11px] sm:text-xs text-[var(--text-primary)] outline-none min-w-0 w-full cursor-pointer [color-scheme:dark] dark:[color-scheme:dark] light:[color-scheme:light]"
+            className="bg-transparent text-[10px] xs:text-[11px] sm:text-xs text-[var(--text-primary)] outline-none w-0 flex-1 min-w-0 cursor-pointer [color-scheme:dark] dark:[color-scheme:dark] light:[color-scheme:light]"
           />
 
           {(localStartDate || localEndDate) && (
