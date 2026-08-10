@@ -18,15 +18,31 @@ function MobileNav() {
       "
       style={{ boxShadow: "var(--shadow-panel)" }}
     >
-      <nav className="flex items-center justify-around px-2 py-3 pb-safe">
+      <nav className="flex items-center justify-around px-2 py-2 pb-safe">
         {navigationLinks.map((link) => (
           <NavLinkItem key={link.path} to={link.path}>
-            <div className="flex flex-col items-center gap-1 w-16 text-[var(--text-secondary)]">
-              <span className="text-xl drop-shadow-sm mb-0.5">{link.icon}</span>
-              <span className="text-[10px] font-medium tracking-wide text-center w-full truncate text-[var(--text-muted)]">
-                {link.label}
-              </span>
-            </div>
+            {({ isActive }) => (
+              <div className="flex flex-col items-center gap-1 w-16 text-center">
+                <span
+                  className={`text-xl transition-all duration-200 ${
+                    isActive
+                      ? "scale-110 opacity-100 filter drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]"
+                      : "opacity-85 hover:opacity-100"
+                  }`}
+                >
+                  {link.icon}
+                </span>
+                <span
+                  className={`text-[10px] tracking-wide w-full truncate transition-colors duration-200 ${
+                    isActive
+                      ? "text-[var(--text-primary)] font-semibold"
+                      : "text-[var(--text-secondary)] font-normal"
+                  }`}
+                >
+                  {link.label}
+                </span>
+              </div>
+            )}
           </NavLinkItem>
         ))}
       </nav>
